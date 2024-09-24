@@ -1,10 +1,11 @@
+from django.contrib.auth.hashers import make_password
 from django.test import TestCase, RequestFactory, override_settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 import pandas as pd
 from tempfile import NamedTemporaryFile
 
 from .models import Student, StudentStudent
-from .views import ImportStudent, FollowStudent
+from .views import ImportStudent, FollowStudent, GetFollowing, ValidateStudentLogin
 from rest_framework.test import APIClient, force_authenticate
 from rest_framework import status
 from django.contrib.auth.models import User
@@ -74,5 +75,33 @@ class testfollowstudent(TestCase):
         response = view(request, s_id=1, b_id=2)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(StudentStudent.objects.count(), 1)
+class testGetFollowing(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.factory = RequestFactory()
+        self.user = User.objects.create_superuser(username='admin', email='admin@example.com', password='adminpass')
+        self.student1 = Student.objects.create(S_id=1, account='zhangsan', password='password123', attention_num=0, name='张三')
+        self.student2 = Student.objects.create(S_id=2, account='lisi', password='password456', attention_num=0, name='李四')
+        StudentStudent.objects.create(S_id=self.student1, follow=self.student2)
+    def test_get_following(self):
+        view = GetFollowing.as_view()
+        request = self.factory.get('/student/my_follow/1/')
+        force_authenticate(request, user=self.user)
+        response = view(request, s_id=1)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        print(response.data["students"])
+class ValidateStudentLoginTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.factory = RequestFactory()
+        self.user = User.objects.create_superuser(username='admin', email='admin@example.com', password='adminpass')
+        password = 'password123'
 
-
+        self.student1 = Student.objects.create(S_id=1, account='zhangsan', password=password, attention_num=0, name='张三')
+    def test_validate_student_login(self):
+        view = ValidateStudentLogin.as_view()
+        request = self.factory.post('/student/validate_login/', {'account': 'zhangsan', 'password': 'password123'})
+        response = view(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['message'], 'Login successful.')

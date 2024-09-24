@@ -189,6 +189,8 @@ class Favorite(models.Model):
     type = models.IntegerField(null=True, blank=True)
     #链接到F_id
     link = models.ForeignKey('Favorite', on_delete=models.CASCADE, null=True, blank=True)
+    follow_num = models.IntegerField(null=True, blank=True,default=0)
+    like_num = models.IntegerField(null=True, blank=True,default=0)
 
     def __str__(self):
         return f"Favorite ID: {self.name}"
@@ -204,6 +206,14 @@ class Note(models.Model):
 
     def __str__(self):
         return f"Note ID: {self.N_id}"
+#用户是否点赞了收藏夹
+class Like(models.Model):
+    S_id = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True)
+    F_id = models.ForeignKey(Favorite, on_delete=models.CASCADE, null=True, blank=True)
+
+
+    def __str__(self):
+        return f"Student ID: {self.S_id}, Favorite ID: {self.F_id}"
 
 
 

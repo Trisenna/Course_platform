@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 from django.contrib.auth.hashers import make_password
 from django.shortcuts import get_object_or_404
@@ -412,6 +414,9 @@ class ImportStudent(APIView):
                     name=data.get('name')
                 )  # 解包字典为关键字参数
                 student.save()
+                #为每个学生创建一个文件夹用于存放收藏夹
+                #在favorite文件夹下创建一个以学生id命名的文件夹
+                os.makedirs(f'favorite/{data.get("S_id")}')
 
 
 
@@ -475,7 +480,10 @@ class GetFollowing(APIView):
 
     def get(self, request, s_id):
         following = StudentStudent.objects.filter(S_id=s_id)
-        return Response({'following': list(following.values('follow'))}, status=status.HTTP_200_OK)
+        #根据id查询关注的学生
+        students = Student.objects.filter(S_id__in=following.values('follow'))
+        return Response({'students': list(students.values('S_id', 'name'))}, status=status.HTTP_200_OK)
+
 
 
 # 取消学生关注的学生
@@ -564,12 +572,452 @@ class ValidateStudentLogin(APIView):
     def post(self, request):
         account = request.data.get('account')
         password = request.data.get('password')
-
-        student = Student.objects.filter(account=account).first()
-        if student and student.check_password(password):
+        student = Student.objects.filter(account=account, password=password).first()
+        if student:
             return Response({'status': 'success', 'message': 'Login successful.'}, status=status.HTTP_200_OK)
-        return Response({'status': 'fail', 'message': 'Invalid username or password.'},
-                        status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'status': 'error', 'message': 'Login failed.'}, status=status.HTTP_401_UNAUTHORIZED)
+#用户自己创建收藏夹
+class CreateFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="用户自己创建收藏夹",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='用户id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名'),
+                'type': openapi.Schema(type=openapi.TYPE_INTEGER, description='保存后是否可见'),
+            }
+        ),
+        responses={201: '成功创建收藏夹', 400: 'Favorite name already exists.'}
+
+    )
+
+    def post(self, request, s_id):
+        name = request.data.get('name')
+        visible = request.data.get('type')
+        #查询Fava中所有s_id为s_id的数据
+        favs = Favorite.objects.filter(S_id=s_id).values('name')
+        #判断是否有重名的收藏夹
+        for fav in favs:
+            if fav['name'] == request.data.get('name'):
+                return Response({'error': 'Favorite name already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        s=Student.objects.get(S_id=s_id)
+        new_fav = Favorite(
+            S_id=s,
+            name=name,
+            type=visible,
+        )
+        new_fav.save()
+        #为在这个学生的文件夹下创建一个以收藏夹名命名的文件夹
+        os.makedirs(f'favorite/{s_id}/{name}')
+        return Response({'message': 'Successfully created favorite.'}, status=status.HTTP_201_CREATED)
+# 用户收藏其他人的收藏夹
+#收藏夹
+# class Favorite(models.Model):
+#     S_id = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True)
+#     name = models.CharField(max_length=100, null=True, blank=True)
+#     F_id = models.IntegerField( primary_key=True, unique=True,auto_created=True)
+#     type = models.IntegerField(null=True, blank=True)
+#     #链接到F_id
+#     link = models.ForeignKey('Favorite', on_delete=models.CASCADE, null=True, blank=True)
+#
+#     def __str__(self):
+#         return f"Favorite ID: {self.name}"
+#
+# #笔记
+# class Note(models.Model):
+#     N_id = models.IntegerField(primary_key=True)
+#     addr = models.CharField(max_length=1000, null=True, blank=True)
+#     title = models.CharField(max_length=100, null=True, blank=True)
+#     F_id = models.ForeignKey(Favorite, on_delete=models.CASCADE, null=True, blank=True)
+#
+#
+#
+#     def __str__(self):
+#         return f"Note ID: {self.N_id}"
+# 用户收藏其他人的收藏夹
+class FavFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="用户收藏其他人的收藏夹",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'b_id',
+                openapi.IN_PATH,
+                description='被查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名'),
+                'type': openapi.Schema(type=openapi.TYPE_INTEGER, description='保存后是否可见'),
+                'favorite_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='收藏夹id')
+            }
+        ),
+        responses={201: '成功收藏收藏夹'}
+    )
+
+    def post(self, request, s_id, b_id):
+        name = request.data.get('name')
+        visible = request.data.get('type')
+        name = request.data.get('name')
+        b_id=Student.objects.get(S_id=b_id)
+        s_id=Student.objects.get(S_id=s_id)
+
+        favorite = get_object_or_404(Favorite, name=name, S_id=b_id)
+        favorite.follow_num += 1
+        favorite.save()
+
+        s=Student.objects.get(S_id=s_id)
+        new_favorite = Favorite(
+            S_id=s,
+            name=name,
+            type=visible,
+            link=favorite
+        )
+        new_favorite.save()
+
+        return Response({'message': 'Successfully liked favorite.'}, status=status.HTTP_201_CREATED)
+
+# 用户删除收藏夹
+class UnfavFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="用户删除收藏夹",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'b_id',
+                openapi.IN_PATH,
+                description='被查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'favorite_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='收藏夹id')
+            }
+        ),
+        responses={200: '成功删除收藏夹'}
+    )
+
+    def post(self, request, s_id):
+        name = request.data.get('name')
+        s_id=Student.objects.get(S_id=s_id)
+        favorite = get_object_or_404(Favorite, name=name, S_id=s_id)
+        #获得链接的收藏夹
+        link = favorite.link
+        if link:
+            link.follow_num -= 1
+            link.save()
+        else:
+            #如果没有链接的收藏夹，直接删除此收藏夹路径下的所有文件
+            os.removedirs(f'favorite/{s_id}/{name}')
+
+        favorite.delete()
+        return Response({'message': 'Successfully unliked favorite.'}, status=status.HTTP_200_OK)
+#用户删除收藏夹
+class UnfavFavorite_id(APIView):
+    @swagger_auto_schema(
+        operation_description="用户删除收藏夹",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'favorite_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='收藏夹id')
+            }
+        ),
+        responses={200: '成功删除收藏夹'}
+    )
+
+    def post(self, request, s_id,b_id):
+        name = request.data.get('name')
+        b_id=Student.objects.get(S_id=b_id)
+        s_id=Student.objects.get(S_id=s_id)
+        favorite = get_object_or_404(Favorite, name=name, S_id=b_id)
+        favorite.follow_num -= 1
+        favorite.save()
+        favorite1=Favorite.objects.get(S_id=s_id,link=favorite)
+        favorite1.delete()
+        return Response({'message': 'Successfully unliked favorite.'}, status=status.HTTP_200_OK)
+# 用户点赞收藏夹
+class LikeFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="用户点赞收藏夹",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'b_id',
+                openapi.IN_PATH,
+                description='被查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名')
+            }
+        ),
+        responses={200: '成功点赞收藏夹'}
+    )
+
+    def post(self, request, s_id, b_id):
+        name = request.data.get('name')
+        b_id=Student.objects.get(S_id=b_id)
+        favorite = get_object_or_404(Favorite, name=name, S_id=b_id)
+        favorite.like_num += 1
+        favorite.save()
+        s_id=Student.objects.get(S_id=s_id)
+        like=Like(S_id=s_id,F_id=favorite)
+        like.save()
+        return Response({'message': 'Successfully liked favorite.'}, status=status.HTTP_200_OK)
+# 用户取消点赞收藏夹
+class UnlikeFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="用户取消点赞收藏夹",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'b_id',
+                openapi.IN_PATH,
+                description='被查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名')
+            }
+        ),
+        responses={200: '成功取消点赞收藏夹'}
+    )
+
+    def post(self, request, s_id, b_id):
+        name = request.data.get('name')
+        b_id=Student.objects.get(S_id=b_id)
+        favorite = get_object_or_404(Favorite, name=name, S_id=b_id)
+        favorite.like_num -= 1
+        favorite.save()
+        like=Like.objects.filter(S_id=s_id,F_id=favorite)
+        like.delete()
+        return Response({'message': 'Successfully unliked favorite.'}, status=status.HTTP_200_OK)
+#判断用户是否收藏了某个用户的收藏夹
+class IsFavFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="判断用户是否收藏了某个用户的收藏夹",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'b_id',
+                openapi.IN_PATH,
+                description='被查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名')
+            }
+        ),
+        responses={200: '返回是否收藏'}
+    )
+
+    def post(self, request, s_id, b_id):
+        name = request.data.get('name')
+        b_id=Student.objects.get(S_id=b_id)
+
+        favorite = Favorite.objects.filter( name=name, link=b_id)
+        s_id=Student.objects.get(S_id=s_id)
+        fa=Favorite.objects.filter(S_id=s_id,link=favorite).first()
+        if fa:
+            return Response({'is_fav': True}, status=status.HTTP_200_OK)
+        return Response({'is_fav': False}, status=status.HTTP_200_OK)
+#判断用户是否点赞了某个用户的收藏夹
+class IsLikeFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="判断用户是否点赞了某个用户的收藏夹",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'b_id',
+                openapi.IN_PATH,
+                description='被查询者id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名')
+            }
+        ),
+        responses={200: '返回是否点赞'}
+    )
+
+    def post(self, request, s_id, b_id):
+        name = request.data.get('name')
+        s_id=Student.objects.get(S_id=s_id)
+        b_id=Student.objects.get(S_id=b_id)
+
+        favorite = Favorite.objects.filter( name=name, link=b_id)
+        like=Like.objects.filter(S_id=s_id,F_id=favorite).first()
+        if like:
+            return Response({'is_like': True}, status=status.HTTP_200_OK)
+        return Response({'is_like': False}, status=status.HTTP_200_OK)
+#用户在收藏夹中上传笔记，笔记为docx格式或者pdf格式
+class CreateNoteInFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="用户在收藏夹中上传笔记，笔记为docx格式或者pdf格式",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='用户id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名'),
+                'note': openapi.Schema(type=openapi.TYPE_FILE, description='笔记')
+            }
+        ),
+        responses={201: '成功上传笔记'}
+    )
+
+    def post(self, request, s_id):
+        name = request.data.get('name')
+        note = request.FILES['note']
+        s_id=Student.objects.get(S_id=s_id)
+        favorite = Favorite.objects.get(S_id=s_id, name=name)
+        #笔记的路径
+        addr = f'favorite/{s_id}/{name}/{note.name}'
+
+        #判断是否有重名的笔记，如果有则删除文件夹中旧的笔记，保存新的笔记
+        if os.path.exists(addr):
+            os.remove(addr)
+
+        new_note = Note(
+            addr=addr,
+            F_id=favorite,
+            title=note.name)
+
+        #保存笔记到相应的文件夹
+        with open(addr, 'wb') as f:
+            for chunk in note.chunks():
+                f.write(chunk)
+
+        new_note.save()
+
+
+        with open(addr, 'wb') as f:
+            for chunk in note.chunks():
+                f.write(chunk)
+        return Response({'message': 'Successfully uploaded note.'}, status=status.HTTP_201_CREATED)
+#用户删除收藏夹中的笔记
+class DeleteNoteInFavorite(APIView):
+    @swagger_auto_schema(
+        operation_description="用户删除收藏夹中的笔记",
+        manual_parameters=[
+            openapi.Parameter(
+                's_id',
+                openapi.IN_PATH,
+                description='用户id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'favname': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名'),
+                'notename': openapi.Schema(type=openapi.TYPE_INTEGER, description='笔记名')
+            }
+        ),
+        responses={200: '成功删除笔记'}
+    )
+
+    def post(self, request, s_id):
+        favname = request.data.get('favname')
+        notename = request.data.get('notename')
+        s_id=Student.objects.get(S_id=s_id)
+        favorite = Favorite.objects.get(S_id=s_id, name=favname)
+        note = Note.objects.get(N_id=notename, F_id=favorite)
+        #删除笔记
+        os.remove(note.addr)
+        note.delete()
+        return Response({'message': 'Successfully deleted note.'}, status=status.HTTP_200_OK)
+
+
+
+
+
+
 
 # from django.contrib.auth.hashers import make_password
 # from django.http import HttpResponse, JsonResponse
