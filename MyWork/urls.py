@@ -32,7 +32,7 @@ schema_view = get_schema_view(
         title="测试工程API",
         default_version='v1.0',
         description="测试工程接口文档",
-        terms_of_service="https://www.cnblogs.com/jinjiangongzuoshi/",
+
         contact=openapi.Contact(email="22301022@qq.com"),
         license=openapi.License(name="BSD License"),
     ),
@@ -53,6 +53,9 @@ urlpatterns = [
 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('docs/', include_docs_urls(title='测试工程API')),
+    #生成接口文档json格式
+    path('swagger-json/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+
 
 
     path('swagger', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
