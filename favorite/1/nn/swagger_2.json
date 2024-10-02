@@ -1,0 +1,845 @@
+swagger: '2.0'
+info:
+  title: 测试工程API
+  description: 测试工程接口文档
+  contact:
+    email: 22301022@qq.com
+  license:
+    name: BSD License
+  version: v1.0
+host: localhost:8000
+schemes:
+- http
+basePath: /
+consumes:
+- application/json
+produces:
+- application/json
+securityDefinitions:
+  Basic:
+    type: basic
+security:
+- Basic: []
+paths:
+  /student/courses/{c_id}/name/:
+    get:
+      operationId: student_courses_name_list
+      description: 根据课程id查询课程名称
+      parameters:
+      - name: c_id
+        in: path
+        description: 课程id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回课程名称
+      tags:
+      - student
+    parameters:
+    - name: c_id
+      in: path
+      required: true
+      type: string
+  /student/favorites/create/{s_id}/:
+    post:
+      operationId: student_favorites_create_create
+      description: 用户自己创建收藏夹
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              description: 收藏夹名
+              type: string
+            type:
+              description: 保存后是否可见
+              type: integer
+      - name: s_id
+        in: path
+        description: 用户id
+        required: true
+        type: integer
+      responses:
+        '201':
+          description: 成功创建收藏夹
+        '400':
+          description: Favorite name already exists.
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/favorites/fav/{s_id}/{b_id}/:
+    post:
+      operationId: student_favorites_fav_create
+      description: 用户收藏其他人的收藏夹
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              description: 收藏夹名
+              type: string
+            type:
+              description: 保存后是否可见
+              type: integer
+            favorite_id:
+              description: 收藏夹id
+              type: integer
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '201':
+          description: 成功收藏收藏夹
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/favorites/isfav/{s_id}/{b_id}/:
+    post:
+      operationId: student_favorites_isfav_create
+      description: 判断用户是否收藏了某个用户的收藏夹
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              description: 收藏夹名
+              type: string
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回是否收藏
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/favorites/islike/{s_id}/{b_id}/:
+    post:
+      operationId: student_favorites_islike_create
+      description: 判断用户是否点赞了某个用户的收藏夹
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              description: 收藏夹名
+              type: string
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回是否点赞
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/favorites/like/{s_id}/{b_id}/:
+    post:
+      operationId: student_favorites_like_create
+      description: 用户点赞收藏夹
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              description: 收藏夹名
+              type: string
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功点赞收藏夹
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/favorites/unfav/{s_id}/{b_id}/:
+    post:
+      operationId: student_favorites_unfav_create
+      description: 用户删除收藏夹
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            favorite_id:
+              description: 收藏夹id
+              type: integer
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功删除收藏夹
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/favorites/unfav_id/{s_id}/{b_id}/:
+    post:
+      operationId: student_favorites_unfav_id_create
+      description: 用户在其他人的界面删除收藏夹
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            favorite_id:
+              description: 收藏夹id
+              type: integer
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功删除收藏夹
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/favorites/unlike/{s_id}/{b_id}/:
+    post:
+      operationId: student_favorites_unlike_create
+      description: 用户取消点赞收藏夹
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              description: 收藏夹名
+              type: string
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功取消点赞收藏夹
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/import/:
+    post:
+      operationId: student_import_create
+      description: 批量导入学生信息
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            csv_file:
+              description: CSV file
+              type: file
+      responses:
+        '201':
+          description: 成功导入学生信息
+      tags:
+      - student
+    parameters: []
+  /student/login/:
+    post:
+      operationId: student_login_create
+      description: 验证学生登录
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            account:
+              description: 账号
+              type: string
+            password:
+              description: 密码
+              type: string
+      responses:
+        '200':
+          description: 成功登录
+      tags:
+      - student
+    parameters: []
+  /student/notices/{i_id}/content/:
+    get:
+      operationId: student_notices_content_list
+      description: 根据通知id查询通知内容
+      parameters:
+      - name: i_id
+        in: path
+        description: 通知id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回通知内容
+      tags:
+      - student
+    parameters:
+    - name: i_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/adjust-info/:
+    post:
+      operationId: student_adjust-info_create
+      description: 学生调整个人信息
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            account:
+              description: 新账号
+              type: string
+            password:
+              description: 新密码
+              type: string
+      - name: s_id
+        in: path
+        description: 学生id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功更新个人信息
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/course-notices/:
+    get:
+      operationId: student_course-notices_list
+      description: 查询某个学生的所有课程通知的C_id和对应的I_id
+      parameters:
+      - name: s_id
+        in: path
+        description: 学生id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回学生的课程通知列表
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/courses/:
+    get:
+      operationId: student_courses_list
+      description: 查询某个学生的所有课程的name,C_id
+      parameters:
+      - name: s_id
+        in: path
+        description: 学生id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回学生的课程列表
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/delete-note/:
+    post:
+      operationId: student_delete-note_create
+      description: 用户删除笔记
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            title:
+              description: 笔记title
+              type: integer
+      - name: s_id
+        in: path
+        description: 用户id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功删除笔记
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/download-note/:
+    post:
+      operationId: student_download-note_create
+      description: 用户下载笔记
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            title:
+              description: 笔记title
+              type: string
+      - name: s_id
+        in: path
+        description: 用户id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功下载笔记
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/download-note/{b_id}/:
+    post:
+      operationId: student_download-note_create
+      description: 用户下载他人的笔记
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            title:
+              description: 笔记title
+              type: string
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功下载笔记
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/favorites/:
+    get:
+      operationId: student_favorites_list
+      description: 查看自己的收藏夹
+      parameters:
+      - name: s_id
+        in: path
+        description: 用户id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回收藏夹列表
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/favorites/notes/:
+    post:
+      operationId: student_favorites_notes_create
+      description: 查看自己收藏夹中的笔记
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            favname:
+              description: 收藏夹名
+              type: string
+      - name: s_id
+        in: path
+        description: 用户id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回笔记列表
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/favorites/{b_id}/:
+    get:
+      operationId: student_favorites_read
+      description: 用户获取他人的收藏夹
+      parameters:
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回收藏夹列表
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/favorites/{b_id}/notes/:
+    post:
+      operationId: student_favorites_notes_create
+      description: 用户获取他人的收藏夹中的笔记title
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            favname:
+              description: 收藏夹名
+              type: string
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回笔记列表
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: b_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/follow/{follow_id}/:
+    post:
+      operationId: student_follow_create
+      description: 增加学生关注学生
+      parameters:
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: follow_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '201':
+          description: 成功关注学生
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: follow_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/following/:
+    get:
+      operationId: student_following_list
+      description: 获得学生关注的学生
+      parameters:
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回学生关注的学生列表
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/info/:
+    get:
+      operationId: student_info_list
+      description: 用户查询个人信息
+      parameters:
+      - name: s_id
+        in: path
+        description: 用户id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回个人信息
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/system-notices/:
+    get:
+      operationId: student_system-notices_list
+      description: 查询某个学生的所有系统通知的I_id
+      parameters:
+      - name: s_id
+        in: path
+        description: 学生id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 返回学生的系统通知列表
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/unfollow/{follow_id}/:
+    post:
+      operationId: student_unfollow_create
+      description: 取消学生关注的学生
+      parameters:
+      - name: s_id
+        in: path
+        description: 查询者id
+        required: true
+        type: integer
+      - name: b_id
+        in: path
+        description: 被查询者id
+        required: true
+        type: integer
+      responses:
+        '200':
+          description: 成功取消关注学生
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+    - name: follow_id
+      in: path
+      required: true
+      type: string
+  /student/{s_id}/upload-note/:
+    post:
+      operationId: student_upload-note_create
+      description: 用户上传笔记
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            title:
+              description: 笔记标题
+              type: string
+            favname:
+              description: 收藏夹名
+              type: string
+            file:
+              description: 文件
+              type: file
+      - name: s_id
+        in: path
+        description: 用户id
+        required: true
+        type: integer
+      responses:
+        '201':
+          description: 成功上传笔记
+      tags:
+      - student
+    parameters:
+    - name: s_id
+      in: path
+      required: true
+      type: string
+definitions: {}

@@ -44,8 +44,10 @@ urlpatterns = [
   # YOUR PATTERNS
 
     path('admin/', admin.site.urls),
-    # 导入学生信息
+    # 学生
     path('student/', include('student.urls')),
+    # 教师
+    path('teacher/', include('teacher.urls')),
     # 配置drf-yasg路由
     # 其他 URL 模式...
 # 配置django-rest-framwork API路由

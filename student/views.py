@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 from django.contrib.auth.hashers import make_password
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from rest_framework.views import APIView
@@ -11,11 +12,13 @@ from rest_framework.permissions import AllowAny
 from drf_yasg.utils import swagger_auto_schema
 
 
-from .models import *
+
+from global_models.models import *
 
 # 查询某个学生的所有课程的name, C_id
 class MyCourseList(APIView):
     @swagger_auto_schema(
+        operation_summary='查询某个学生的所有课程的名字',
         operation_description="查询某个学生的所有课程的name,C_id",
         manual_parameters=[
             openapi.Parameter(
@@ -38,6 +41,7 @@ class MyCourseList(APIView):
 # 查询某个学生的所有课程通知
 class MyCourseNotice(APIView):
     @swagger_auto_schema(
+        operation_summary='查询某个学生的所有课程通知',
         operation_description="查询某个学生的所有课程通知的C_id和对应的I_id,type=1",
         manual_parameters=[
             openapi.Parameter(
@@ -69,6 +73,7 @@ class MyCourseNotice(APIView):
 # 查询某个学生的所有系统通知
 class MySystemNotice(APIView):
     @swagger_auto_schema(
+        operation_summary= '查询某个学生的所有系统通知',
         operation_description="查询某个学生的所有系统通知的I_id",
         manual_parameters=[
             openapi.Parameter(
@@ -95,6 +100,7 @@ class MySystemNotice(APIView):
 class ImportStudent(APIView):
 
     @swagger_auto_schema(
+        operation_summary='批量导入学生信息',
         operation_description="批量导入学生信息",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -139,6 +145,7 @@ class ImportStudent(APIView):
 # 增加学生关注学生
 class FollowStudent(APIView):
     @swagger_auto_schema(
+        operation_summary='增加学生关注学生',
         operation_description="增加学生关注学生",
         manual_parameters=[
             openapi.Parameter(
@@ -176,6 +183,7 @@ class FollowStudent(APIView):
 # 获得学生关注的学生
 class GetFollowing(APIView):
     @swagger_auto_schema(
+        operation_summary='获得学生关注的学生',
         operation_description="获得学生关注的学生",
         manual_parameters=[
             openapi.Parameter(
@@ -200,6 +208,7 @@ class GetFollowing(APIView):
 # 取消学生关注的学生
 class UnfollowStudent(APIView):
     @swagger_auto_schema(
+        operation_summary='取消学生关注的学生',
         operation_description="取消学生关注的学生",
         manual_parameters=[
             openapi.Parameter(
@@ -228,6 +237,7 @@ class UnfollowStudent(APIView):
 # 学生调整个人信息
 class AdjustStudentInfo(APIView):
     @swagger_auto_schema(
+        operation_summary='学生调整个人信息',
         operation_description="学生调整个人信息",
         manual_parameters=[
             openapi.Parameter(
@@ -267,6 +277,7 @@ class AdjustStudentInfo(APIView):
 # 验证学生登录
 class ValidateStudentLogin(APIView):
     @swagger_auto_schema(
+        operation_summary='验证学生登录',
         operation_description="验证学生登录",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -283,11 +294,12 @@ class ValidateStudentLogin(APIView):
         password = request.data.get('password')
         student = Student.objects.filter(account=account, password=password).first()
         if student:
-            return Response({'status': 'success', 'message': 'Login successful.','s_id':student.S_id}, status=status.HTTP_200_OK)
+            return Response({'s_id':student.S_id}, status=status.HTTP_200_OK)
         return Response({'status': 'error', 'message': 'Login failed.'}, status=status.HTTP_401_UNAUTHORIZED)
 #用户自己创建收藏夹
 class CreateFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary='用户自己创建收藏夹',
         operation_description="用户自己创建收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -338,6 +350,7 @@ class CreateFavorite(APIView):
 # 用户收藏其他人的收藏夹
 class FavFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary='用户收藏其他人的收藏夹',
         operation_description="用户收藏其他人的收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -393,6 +406,7 @@ class FavFavorite(APIView):
 # 用户删除收藏夹
 class UnfavFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary='用户删除收藏夹',
         operation_description="用户删除收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -432,6 +446,7 @@ class UnfavFavorite(APIView):
 #用户删除收藏的收藏夹
 class UnfavFavorite_id(APIView):
     @swagger_auto_schema(
+        operation_summary='用户删除收藏的收藏夹',
         operation_description="用户在其他人的界面删除收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -471,6 +486,7 @@ class UnfavFavorite_id(APIView):
 # 用户点赞收藏夹
 class LikeFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary='用户点赞收藏夹',
         operation_description="用户点赞收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -510,6 +526,7 @@ class LikeFavorite(APIView):
 # 用户取消点赞收藏夹
 class UnlikeFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary='用户取消点赞收藏夹',
         operation_description="用户取消点赞收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -548,6 +565,7 @@ class UnlikeFavorite(APIView):
 #判断用户是否收藏了某个用户的收藏夹
 class IsFavFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary='判断用户是否收藏了某个用户的收藏夹',
         operation_description="判断用户是否收藏了某个用户的收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -587,6 +605,7 @@ class IsFavFavorite(APIView):
 #判断用户是否点赞了某个用户的收藏夹
 class IsLikeFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary="判断用户是否点赞了某个用户的收藏夹",
         operation_description="判断用户是否点赞了某个用户的收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -627,6 +646,7 @@ class IsLikeFavorite(APIView):
 #用户查询个人信息
 class GetStudentInfo(APIView):
     @swagger_auto_schema(
+        operation_summary='用户查询个人信息',
         operation_description="用户查询个人信息",
         manual_parameters=[
             openapi.Parameter(
@@ -647,6 +667,7 @@ class GetStudentInfo(APIView):
 #查看自己的收藏夹
 class GetFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary='查看自己的收藏夹',
         operation_description="查看自己的收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -667,6 +688,7 @@ class GetFavorite(APIView):
 #查看自己收藏夹中的笔记
 class GetNoteInFavorite(APIView):
     @swagger_auto_schema(
+        operation_summary='查看自己收藏夹中的笔记',
         operation_description="查看自己收藏夹中的笔记",
         manual_parameters=[
             openapi.Parameter(
@@ -695,6 +717,7 @@ class GetNoteInFavorite(APIView):
 #用户获取他人的收藏夹
 class GetFavorite_other(APIView):
     @swagger_auto_schema(
+        operation_summary='用户获取他人的收藏夹',
         operation_description="用户获取他人的收藏夹",
         manual_parameters=[
             openapi.Parameter(
@@ -722,6 +745,7 @@ class GetFavorite_other(APIView):
 #用户获取他人的收藏夹中的笔记title
 class GetNoteInFavorite_other(APIView):
     @swagger_auto_schema(
+        operation_summary='用户获取他人的收藏夹中的笔记title',
         operation_description="用户获取他人的收藏夹中的笔记title",
         manual_parameters=[
             openapi.Parameter(
@@ -757,6 +781,7 @@ class GetNoteInFavorite_other(APIView):
 #用户上传笔记
 class UploadNote(APIView):
     @swagger_auto_schema(
+        operation_summary='用户上传笔记',
         operation_description="用户上传笔记",
         manual_parameters=[
             openapi.Parameter(
@@ -803,6 +828,7 @@ class UploadNote(APIView):
 #用户删除笔记
 class DeleteNote(APIView):
     @swagger_auto_schema(
+        operation_summary='用户删除笔记',
         operation_description="用户删除笔记",
         manual_parameters=[
             openapi.Parameter(
@@ -830,9 +856,23 @@ class DeleteNote(APIView):
         os.remove(note.file.__str__())
         note.delete()
         return Response({'message': 'Successfully deleted note.'}, status=status.HTTP_200_OK)
-#用户下载自己的笔记
-class DownloadNote(APIView):
+
+
+class DownloadBase:
+    def download_file(self, note):
+        """
+        处理文件下载的逻辑。
+
+        :param note: 笔记对象
+        :return: 文件下载响应
+        """
+        file_path = note.file.path
+        response = FileResponse(open(file_path, 'rb'))
+        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+        return response
+class DownloadNote(APIView, DownloadBase):
     @swagger_auto_schema(
+        operation_summary='用户下载笔记',
         operation_description="用户下载笔记",
         manual_parameters=[
             openapi.Parameter(
@@ -846,6 +886,7 @@ class DownloadNote(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
+                'favname': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名'),
                 'title': openapi.Schema(type=openapi.TYPE_STRING, description='笔记title')
             }
         ),
@@ -853,16 +894,18 @@ class DownloadNote(APIView):
     )
 
     def post(self, request, s_id):
+        favname = request.data.get('favname')
         title = request.data.get('title')
         s_id=Student.objects.get(S_id=s_id)
-        note = Note.objects.get(F_id__S_id=s_id, title=title)
-        file = note.file
-        #返回文件
+        favorite = Favorite.objects.get(S_id=s_id, name=favname)
+        note = Note.objects.get(F_id=favorite, title=title)
+        return self.download_file(note)
 
-        return Response({'file': file}, status=status.HTTP_200_OK)
+
 #用户下载他人的笔记
-class DownloadNote_other(APIView):
+class DownloadNote_other(APIView, DownloadBase):
     @swagger_auto_schema(
+        operation_summary='用户下载他人的笔记',
         operation_description="用户下载他人的笔记",
         manual_parameters=[
             openapi.Parameter(
@@ -883,6 +926,7 @@ class DownloadNote_other(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
+                'favname': openapi.Schema(type=openapi.TYPE_STRING, description='收藏夹名'),
                 'title': openapi.Schema(type=openapi.TYPE_STRING, description='笔记title')
             }
         ),
@@ -890,11 +934,392 @@ class DownloadNote_other(APIView):
     )
 
     def post(self, request, s_id, b_id):
+        favname = request.data.get('favname')
         title = request.data.get('title')
         b_id=Student.objects.get(S_id=b_id)
-        note = Note.objects.get(F_id__S_id=b_id, title=title)
-        file = note.file
-        return Response({'file': file}, status=status.HTTP_200_OK)
+        favorite = Favorite.objects.get(S_id=b_id, name=favname)
+        note = Note.objects.get(F_id=favorite, title=title)
+        return self.download_file(note)
+#查看课程大纲
+class GetCourseOutline(APIView):
+    @swagger_auto_schema(
+        operation_summary='查看课程大纲',
+        operation_description='允许学生通过课程id来查看该课程的课程大纲。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回课程大纲',
+                examples={
+                    "application/json": {
+                        "download_link": "http://example.com/download/path/to/syllabus.pdf"
+                    }
+                }
+            )
+        }
+    )
+
+    def post(self, request, s_id):
+        c_id = request.data.get('c_id')
+        if c_id is None:
+            return Response({"error": "课程id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            course = Course.objects.get(C_id=c_id)
+            # 假设Syllabus字段保存的是文件路径
+            file_path = course.Syllabus.path
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+#查看课程介绍
+class GetCourseIntroduction(APIView):
+    @swagger_auto_schema(
+        operation_summary='查看课程介绍',
+        operation_description='允许学生通过课程id来查看该课程的课程介绍。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回课程介绍',
+                examples={
+                    "application/json": {
+                        "introduction": "这是一个课程介绍"
+                    }
+                }
+            )
+        }
+    )
+
+    def post(self, request, s_id):
+        c_id = request.data.get('c_id')
+        if c_id is None:
+            return Response({"error": "课程id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            course = Course.objects.get(C_id=c_id)
+            return Response({"introduction": course.introduction})
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+class GetCourseCalendar(APIView):
+    @swagger_auto_schema(
+        operation_summary='查看教学日历',
+        operation_description='允许学生通过课程id来查看该课程的教学日历。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回教学日历',
+                examples={
+                    "application/json": {
+                        "download_link": "http://example.com/download/path/to/calendar.pdf"
+                    }
+                }
+            )
+        }
+    )
+
+    def post(self, request, t_id):
+        c_id = request.data.get('c_id')
+        if c_id is None:
+            return Response({"error": "课程id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            course = Course.objects.get(C_id=c_id)
+            # 假设calendar字段保存的是文件路径
+            file_path = course.calendar.path
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+#查看课程教师的信息
+class GetCourseTeacherInfo(APIView):
+    @swagger_auto_schema(
+        operation_summary='查看课程教师的信息',
+        operation_description='允许学生通过课程id来查看该课程的教师信息。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回教师信息'
+            )
+        }
+    )
+
+    def post(self, request, s_id):
+        c_id = request.data.get('c_id')
+        if c_id is None:
+            return Response({"error": "课程id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            course = Course.objects.get(C_id=c_id)
+            teacher = CourseTeacher.objects.get(C_id=course).T_id
+            return Response({"teacher name": teacher.name})
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+#教师查看课件
+class GetCourseMaterial(APIView):
+    @swagger_auto_schema(
+        operation_summary='查看课件',
+        operation_description='允许学生通过课程id来查看该课程的课件。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回课件',
+                examples={
+                    "application/json": {
+                        "download_link": "http://example.com/download/path/to/material.pdf"
+                    }
+                }
+            )
+        }
+    )
+
+    def post(self, request, s_id):
+        c_id = request.data.get('c_id')
+        if c_id is None:
+            return Response({"error": "课程id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            course = Course.objects.get(C_id=c_id)
+            # 获取课程的课件资源
+            resource = CourseResource.objects.filter(C_id=course, R_id__type='0').first()
+            if resource is None:
+                return Response({"error": "课件不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+            # 假设file字段保存的是文件路径
+            file_path = resource.R_id.file.path
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+#教师查看试题
+class GetTest(APIView):
+    @swagger_auto_schema(
+        operation_summary='查看试题',
+        operation_description='允许学生通过课程id来查看该课程的试题。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回试题',
+                examples={
+                    "application/json": {
+                        "download_link": "http://example.com/download/path/to/test.pdf"
+                    }
+                }
+            )
+        }
+    )
+
+    def post(self, request, s_id):
+        c_id = request.data.get('c_id')
+        if c_id is None:
+            return Response({"error": "课程id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            course = Course.objects.get(C_id=c_id)
+            # 获取课程的试题资源
+            resource = CourseResource.objects.filter(C_id=course, R_id__type='1').first()
+            if resource is None:
+                return Response({"error": "试题不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+            # 假设file字段保存的是文件路径
+            file_path = resource.R_id.file.path
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+#教师查看习题
+class GetExercise(APIView):
+    @swagger_auto_schema(
+        operation_summary='查看习题',
+        operation_description='允许学生通过课程id来查看该课程的习题。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回习题',
+                examples={
+                    "application/json": {
+                        "download_link": "http://example.com/download/path/to/exercise.pdf"
+                    }
+                }
+            )
+        }
+    )
+
+    def post(self, request, s_id):
+        c_id = request.data.get('c_id')
+        if c_id is None:
+            return Response({"error": "课程id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            course = Course.objects.get(C_id=c_id)
+            # 获取课程的习题资源
+            resource = CourseResource.objects.filter(C_id=course, R_id__type='2').first()
+            if resource is None:
+                return Response({"error": "习题不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+            # 假设file字段保存的是文件路径
+            file_path = resource.R_id.file.path
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+#学生查看自己某个课程的所有作业
+class GetAllwork(APIView):
+    @swagger_auto_schema(
+        operation_summary='学生查看自己某个课程的所有作业',
+        operation_description='允许学生通过课程id来查看该课程的作业。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回作业',
+                examples={
+                    "application/json": {
+                        "download_link": "http://example.com/download/path/to/homework.pdf"
+                    }
+                }
+            )
+        }
+    )
+
+    def post(self, request, s_id):
+        c_id = request.data.get('c_id')
+        if c_id is None:
+            return Response({"error": "课程id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            course = Course.objects.get(C_id=c_id)
+            student=Student.objects.get(S_id=s_id)
+            # 获取课程的作业资源
+            W_id = DoWork.objects.filter(C_id=course, S_id=student).values("W_id")
+            if W_id is None:
+                return Response({"error": "作业不存在"}, status=status.HTTP_404_NOT_FOUND)
+            #获取作业的title
+
+            title=Work.objects.filter(W_id__in=W_id).values("title","W_id")
+            return Response({"title": title})
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+#学生查看自己的某个作业
+class GetWork(APIView):
+    @swagger_auto_schema(
+        operation_summary='学生查看自己的某个作业',
+        operation_description='允许学生通过作业id来查看该作业的内容。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'w_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='作业id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回作业',
+                examples={
+                    "application/json": {
+                        "download_link": "http://example.com/download/path/to/work.pdf"
+                    }
+                }
+            )
+        }
+    )
+
+    def post(self, request, s_id):
+        w_id = request.data.get('w_id')
+        if w_id is None:
+            return Response({"error": "作业id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            work = Work.objects.get(W_id=w_id).content
+            # 假设file字段保存的是文件路径
+            file_path = work.path
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+        except Work.DoesNotExist:
+            return Response({"error": "作业不存在"}, status=status.HTTP_404_NOT_FOUND)
+#学生提交作业
+class SubmitWork(APIView):
+    @swagger_auto_schema(
+        operation_summary='学生提交作业',
+        operation_description='允许学生通过作业id来提交该作业。',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'w_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='作业id'),
+                'file': openapi.Schema(type=openapi.TYPE_FILE, description='文件')
+            }
+        ),
+        responses={
+            201: '成功提交作业'
+        }
+    )
+
+    def post(self, request, s_id):
+        w_id = request.data.get('w_id')
+        file = request.data.get('file')
+        if w_id is None:
+            return Response({"error": "作业id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            student = Student.objects.get(S_id=s_id)
+            work = Work.objects.get(W_id=w_id)
+            w=DoWork.objects.get(S_id=student,W_id=work)
+            w.file=file
+            w.is_push=True
+            w.save()
+
+            return Response({"message": "成功提交作业"}, status=status.HTTP_201_CREATED)
+        except Work.DoesNotExist:
+            return Response({"error": "作业不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
 
 
 
