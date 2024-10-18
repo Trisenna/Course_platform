@@ -15,11 +15,53 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+from rest_framework import routers, permissions
+from rest_framework.documentation import include_docs_urls
+
+
+
+router = routers.DefaultRouter()
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="测试工程API",
+        default_version='v1.0',
+        description="测试工程接口文档",
+
+        contact=openapi.Contact(email="22301022@qq.com"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
+  # YOUR PATTERNS
+
     path('admin/', admin.site.urls),
-    #导入学生信息
+    # 学生
     path('student/', include('student.urls')),
+    # 教师
+    path('teacher/', include('teacher.urls')),
+    # 配置drf-yasg路由
+    # 其他 URL 模式...
+# 配置django-rest-framwork API路由
+    # 配置django-rest-framwork API路由
+
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    path('docs/', include_docs_urls(title='测试工程API')),
+    #生成接口文档json格式
+    path('swagger-json/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+
+
+
+    path('swagger', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+
 ]
+
