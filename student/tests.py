@@ -1,107 +1,50 @@
-from django.contrib.auth.hashers import make_password
-from django.test import TestCase, RequestFactory, override_settings
-from django.core.files.uploadedfile import SimpleUploadedFile
-import pandas as pd
-from tempfile import NamedTemporaryFile
-
-from .models import Student, StudentStudent
-from .views import ImportStudent, FollowStudent, GetFollowing, ValidateStudentLogin
-from rest_framework.test import APIClient, force_authenticate
+#编写接口的测试代码
+from django.test import TestCase, RequestFactory
+from django.urls import reverse
 from rest_framework import status
-from django.contrib.auth.models import User
+from rest_framework.test import APITestCase
+from global_models.models import *
+from student.views import MyCourseList
 
+from django.test import TestCase, RequestFactory
+from .views import MyCourseList, MyCourseNotice, GetCourseMaterial, GetTest, GetExercise
 
-@override_settings(MEDIA_ROOT='/tmp/')  # 使用临时目录存储上传文件
-class ImportStudentTest(TestCase):
+from django.urls import reverse
+#测试接口
 
+#MyCourseList
+class MyCourseListTestCase(TestCase):
     def setUp(self):
-        self.client = APIClient()
-        self.factory = RequestFactory()
-        self.user = User.objects.create_superuser(username='admin', email='admin@example.com', password='adminpass')
+        # 此处用于填写测试数据,这个地方相当于创建了一个虚拟数据库
 
-    def create_csv_file(self):
-        """ 创建一个简单的CSV文件 """
-        data = {
-            'S_id': [3, 4],
-            'name': ['张三', '李四'],
-            'attention_num': [0, 0],
-            'account': ['zhangsan', 'lisi'],
-            'password': ['password123', 'password456']
-        }
-        # 使用 NamedTemporaryFile 创建一个临时文件
-        with NamedTemporaryFile(delete=False, suffix='.csv') as tmp:
-            df = pd.DataFrame(data)
-            df.to_csv(tmp.name, index=False)
-            return SimpleUploadedFile('test.csv', open(tmp.name, 'rb').read())
+        # 创建测试用的学生
+        self.student = Student.objects.create(name='Test Student',S_id=1)
 
-    def test_import_student(self):
-        view = ImportStudent.as_view()
+        # 创建几个测试用的课程
+        self.course1 = Course.objects.create(name='Math', C_id=1)
+        self.course2 = Course.objects.create(name='Physics', C_id=2)
+        self.course3 = Course.objects.create(name='Chemistry', C_id=3)
 
-        # 使用工厂创建请求
-        request = self.factory.post('/student/import-student/', {'csv_file': self.create_csv_file()})
-        force_authenticate(request, user=self.user)  # 模拟认证用户
+        # 将学生与课程关联起来
+        StudentCourse.objects.create(S_id=self.student, C_id=self.course1)
+        StudentCourse.objects.create(S_id=self.student, C_id=self.course2)
 
-        response = view(request)
+    def test_get_courses_for_student(self):
+        # 创建一个RequestFactory对象，用于创建请求
+        factory = RequestFactory()
 
-        # 验证响应的状态码
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        #创建request对象，请求的url为/student/1/courses/
+        url = "/student/1/courses/"
+        request = factory.get(url)
 
-        # 验证响应的消息
-        expected_message = '学生信息导入成功'
-        actual_message = response.data.get('message', '')
-        self.assertIn(expected_message, actual_message)
-
-        # 验证数据是否正确保存到了数据库中
-        from .models import Student  # 引入 Student 模型
-        self.assertEqual(Student.objects.count(), 2)
-
-        # 验证具体的学生信息是否正确保存
-        student_ids = Student.objects.values_list('S_id', flat=True)
-        self.assertIn(3, student_ids)
-        self.assertIn(4, student_ids)
-class testfollowstudent(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.factory = RequestFactory()
-        self.user = User.objects.create_superuser(username='admin', email='admin@example.com', password='adminpass')
-        self.student1 = Student.objects.create(S_id=1, account='zhangsan', password='password123', attention_num=0, name='张三')
-        self.student2 = Student.objects.create(S_id=2, account='lisi', password='password456', attention_num=0, name='李四')
+        #获取返回的response，MyCourseList.as_view()是直接调用
+        response = MyCourseList.as_view()(request, s_id=self.student.S_id)
 
 
-    def test_follow_student(self):
-        view = FollowStudent.as_view()
-        request = self.factory.post('/student/follow_student/1/2/')
-        force_authenticate(request, user=self.user)
-        response = view(request, s_id=1, b_id=2)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(StudentStudent.objects.count(), 1)
-class testGetFollowing(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.factory = RequestFactory()
-        self.user = User.objects.create_superuser(username='admin', email='admin@example.com', password='adminpass')
-        self.student1 = Student.objects.create(S_id=1, account='zhangsan', password='password123', attention_num=0, name='张三')
-        self.student2 = Student.objects.create(S_id=2, account='lisi', password='password456', attention_num=0, name='李四')
-        StudentStudent.objects.create(S_id=self.student1, follow=self.student2)
-    def test_get_following(self):
-        view = GetFollowing.as_view()
-        request = self.factory.get('/student/my_follow/1/')
-        force_authenticate(request, user=self.user)
-        response = view(request, s_id=1)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        print(response.data["students"])
-class ValidateStudentLoginTest(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.factory = RequestFactory()
-        self.user = User.objects.create_superuser(username='admin', email='admin@example.com', password='adminpass')
-        password = 'password123'
+        #判断测试是否通过。断言 response的状态码是否为200，返回的数据中是否包含了Math和Physics两门课程
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['courses']), 2)
+        self.assertEqual(response.data['courses'][0]['name'], 'Math')
+        self.assertEqual(response.data['courses'][1]['name'], 'Physics')
 
-        self.student1 = Student.objects.create(S_id=1, account='zhangsan', password=password, attention_num=0, name='张三')
-    def test_validate_student_login(self):
-        view = ValidateStudentLogin.as_view()
-        request = self.factory.post('/student/validate_login/', {'account': 'zhangsan', 'password': 'password123'})
-        response = view(request)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['message'], 'Login successful.')
+

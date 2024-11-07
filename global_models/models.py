@@ -44,8 +44,10 @@ class Course(models.Model):
         if self.C_id:
             username = self.C_id.__str__()  # 获取用户名
             # 设置文件的上传路径
-            self.Syllabus.name = os.path.join('Course','Syllabus', username, self.Syllabus.name)
-            self.calendar.name = os.path.join('Course','calendar', username, self.calendar.name)
+            if self.Syllabus:
+                self.Syllabus.name = os.path.join('Course','Syllabus', username, self.Syllabus.name)
+            if self.calendar:
+                self.calendar.name = os.path.join('Course','calendar', username, self.calendar.name)
         super().save(*args, **kwargs )
 
 
