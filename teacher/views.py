@@ -6,23 +6,27 @@ from drf_yasg import openapi
 # Create your views here.
 #教师发布作业
 from rest_framework import status
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from global_models.models import *
 import os
 
 import pandas as pd
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 
 #教师查看自己所交的课程
 class GetCourse(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师查看自己所交的课程',
         manual_parameters=[
@@ -50,6 +54,8 @@ class GetCourse(APIView):
 
 #教师查看自己所交的课程的学生
 class GetCourseStudent(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师查看自己所交的课程的学生',
         operation_description='允许教师通过课程名称和学期来获取该课程的学生列表。',
@@ -107,6 +113,8 @@ class GetCourseStudent(APIView):
 
 #教师修改某个课程的课程介绍，post
 class AdjustCourseInfo(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师修改某个课程的课程介绍',
         operation_description='允许教师通过课程id来修改该课程的课程介绍。',
@@ -139,6 +147,8 @@ class AdjustCourseInfo(APIView):
         return Response({'message':'success'})
 #教师修改某个课程的课程大纲，大纲为一个文件，post
 class AdjustCourseOutline(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师修改某个课程的课程大纲',
         operation_description='允许教师通过课程id来修改该课程的课程大纲。',
@@ -171,6 +181,8 @@ class AdjustCourseOutline(APIView):
         return Response({'message':'success'})
 #教师上传教学日历
 class AdjustCourseCalendar(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师修改教学日历',
         operation_description='允许教师通过课程id来上传该课程的教学日历。',
@@ -204,6 +216,8 @@ class AdjustCourseCalendar(APIView):
 from django.http import FileResponse
 
 class GetCourseCalendar(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看教学日历',
         operation_description='允许教师通过课程id来查看该课程的教学日历。',
@@ -242,6 +256,8 @@ class GetCourseCalendar(APIView):
 
 #查看课程大纲
 class GetCourseOutline(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看课程大纲',
         operation_description='允许教师通过课程id来查看该课程的课程大纲。',
@@ -279,6 +295,8 @@ class GetCourseOutline(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #查看课程介绍
 class GetCourseIntroduction(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看课程介绍',
         operation_description='允许教师通过课程id来查看该课程的课程介绍。',
@@ -312,6 +330,8 @@ class GetCourseIntroduction(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师发布课程通知
 class PublishNotice(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师发布课程通知',
         operation_description='允许教师通过课程id来发布课程通知。',
@@ -356,8 +376,9 @@ class PublishNotice(APIView):
             return Response({"message": "success"})
         except Course.DoesNotExist:
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
-#教师登录
+
 class ValidateTeacherLogin(APIView):
+
     @swagger_auto_schema(
         operation_summary='教师登录',
         operation_description='允许教师通过账号和密码登录。',
@@ -373,23 +394,33 @@ class ValidateTeacherLogin(APIView):
                 '登录成功',
                 examples={
                     "application/json": {
-                        "message": "success"
+                        "message": "success",
+                        "t_id": 1,
+                        "token": "your-token-value"
                     }
                 }
-            )
+            ),
+            400: '账号或密码未提供',
+            401: '密码错误',
+            404: '账号不存在'
         }
     )
-
     def post(self, request):
         account = request.data.get('account')
         password = request.data.get('password')
+
         if account is None or password is None:
             return Response({"error": "账号或密码未提供"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             teacher = Teacher.objects.get(account=account)
-            if teacher.passward == password:
-                return Response({"t_id": teacher.T_id})
+            if check_password(password, teacher.password):
+                token, created = Token.objects.get_or_create(user=teacher)
+                return Response({
+                    "message": "success",
+                    "t_id": teacher.T_id,
+                    "token": token.key
+                }, status=status.HTTP_200_OK)
             else:
                 return Response({"error": "密码错误"}, status=status.HTTP_401_UNAUTHORIZED)
         except Teacher.DoesNotExist:
@@ -398,6 +429,8 @@ class ValidateTeacherLogin(APIView):
 
 
 class UploadTeachingMaterial(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
 
     @swagger_auto_schema(
@@ -443,6 +476,8 @@ class UploadTeachingMaterial(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师上传试题
 class UploadTest(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师上传试题',
         operation_description='允许教师通过课程id来上传试题。',
@@ -485,6 +520,8 @@ class UploadTest(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师上传习题
 class UploadExercise(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师上传习题',
         operation_description='允许教师通过课程id来上传习题。',
@@ -527,6 +564,8 @@ class UploadExercise(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师查看课件
 class GetCourseMaterial(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看课件',
         operation_description='允许教师通过课程id来查看该课程的课件。',
@@ -569,6 +608,8 @@ class GetCourseMaterial(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师查看试题
 class GetTest(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看试题',
         operation_description='允许教师通过课程id来查看该课程的试题。',
@@ -612,6 +653,8 @@ class GetTest(APIView):
 
 #教师查看习题
 class GetExercise(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看习题',
         operation_description='允许教师通过课程id来查看该课程的习题。',
@@ -654,6 +697,8 @@ class GetExercise(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师上传某个课程作业
 class UploadWork(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师上传作业',
         operation_description='允许教师通过课程id来上传作业，并将其分配给该课程的所有学生。',
@@ -725,6 +770,8 @@ class UploadWork(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师查看自己发布的作业
 class GetWork(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师查看自己发布的作业',
         operation_description='允许教师通过课程id来查看该课程的作业。',
@@ -781,6 +828,8 @@ class GetWork(APIView):
 
 #教师查看某个作业的提交情况
 class GetWorkSubmission(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师查看某个作业的提交情况',
         operation_description='允许教师通过作业id来查看该作业的提交情况。',
@@ -837,6 +886,8 @@ class GetWorkSubmission(APIView):
             return Response({"error": "作业不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师查看学生作业
 class GetStudentWork(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师查看学生作业',
         operation_description='允许教师通过作业id和学生id来查看学生提交的作业。',
@@ -889,6 +940,8 @@ class GetStudentWork(APIView):
             return Response({"error": "学生未提交作业"}, status=status.HTTP_404_NOT_FOUND)
 #教师批改作业
 class CorrectWork(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教师批改作业',
         operation_description='允许教师通过作业id和学生id来批改作业。',

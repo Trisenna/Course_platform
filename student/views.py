@@ -5,21 +5,28 @@ from django.contrib.auth.hashers import make_password
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import NotFound
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 
 
 
 from global_models.models import *
 
-# 查询某个学生的所有课程的name, C_id
+
 class MyCourseList(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+
     @swagger_auto_schema(
         operation_summary='查询某个学生的所有课程的名字',
-        operation_description="查询某个学生的所有课程的name,C_id",
+        operation_description="查询某个学生的所有课程的name, C_id",
         manual_parameters=[
             openapi.Parameter(
                 's_id',
@@ -29,17 +36,24 @@ class MyCourseList(APIView):
                 type=openapi.TYPE_INTEGER,
             ),
         ],
-
-        responses={200: '返回学生的课程列表'}
+        responses={200: '返回学生的课程列表', 404: '学生不存在'}
     )
-
     def get(self, request, s_id):
-        courses = Course.objects.filter(C_id__in=StudentCourse.objects.filter(S_id=s_id).values('C_id'))
-        course_names = list(courses.values('name', 'C_id'))
-        return Response({'courses': course_names}, status=status.HTTP_200_OK)
+        # 检查学生是否存在
+        if not StudentCourse.objects.filter(S_id=s_id).exists():
+            raise NotFound(detail="学生不存在")
 
+        # 获取该学生选修的所有课程的ID
+        student_courses = StudentCourse.objects.filter(S_id=s_id).values_list('C_id', flat=True)
+
+        # 根据课程ID查询课程的名称和ID
+        courses = Course.objects.filter(C_id__in=student_courses).values('name', 'C_id')
+
+        return Response({'courses': list(courses)}, status=status.HTTP_200_OK)
 # 查询某个学生的所有课程通知
 class MyCourseNotice(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查询某个学生的所有课程通知',
         operation_description="查询某个学生的所有课程通知的C_id和对应的I_id,type=1",
@@ -72,6 +86,8 @@ class MyCourseNotice(APIView):
 
 # 查询某个学生的所有系统通知
 class MySystemNotice(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary= '查询某个学生的所有系统通知',
         operation_description="查询某个学生的所有系统通知的I_id",
@@ -144,6 +160,8 @@ class ImportStudent(APIView):
 
 # 增加学生关注学生
 class FollowStudent(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='增加学生关注学生',
         operation_description="增加学生关注学生",
@@ -182,6 +200,8 @@ class FollowStudent(APIView):
 
 # 获得学生关注的学生
 class GetFollowing(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='获得学生关注的学生',
         operation_description="获得学生关注的学生",
@@ -207,6 +227,8 @@ class GetFollowing(APIView):
 
 # 取消学生关注的学生
 class UnfollowStudent(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='取消学生关注的学生',
         operation_description="取消学生关注的学生",
@@ -236,6 +258,8 @@ class UnfollowStudent(APIView):
 
 # 学生调整个人信息
 class AdjustStudentInfo(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='学生调整个人信息',
         operation_description="学生调整个人信息",
@@ -274,8 +298,8 @@ class AdjustStudentInfo(APIView):
                         status=status.HTTP_200_OK)
 
 
-# 验证学生登录
 class ValidateStudentLogin(APIView):
+
     @swagger_auto_schema(
         operation_summary='验证学生登录',
         operation_description="验证学生登录",
@@ -286,18 +310,23 @@ class ValidateStudentLogin(APIView):
                 'password': openapi.Schema(type=openapi.TYPE_STRING, description='密码')
             }
         ),
-        responses={200: '成功登录'}
+        responses={200: '成功登录', 401: '登录失败'}
     )
-
     def post(self, request):
         account = request.data.get('account')
         password = request.data.get('password')
+
         student = Student.objects.filter(account=account, password=password).first()
+
         if student:
-            return Response({'s_id':student.S_id}, status=status.HTTP_200_OK)
+            token, created = Token.objects.get_or_create(user=student)
+            return Response({'s_id': student.S_id, 'token': token.key}, status=status.HTTP_200_OK)
+
         return Response({'status': 'error', 'message': 'Login failed.'}, status=status.HTTP_401_UNAUTHORIZED)
 #用户自己创建收藏夹
 class CreateFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户自己创建收藏夹',
         operation_description="用户自己创建收藏夹",
@@ -349,6 +378,8 @@ class CreateFavorite(APIView):
         return Response({'message': 'Successfully created favorite.'}, status=status.HTTP_201_CREATED)
 # 用户收藏其他人的收藏夹
 class FavFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户收藏其他人的收藏夹',
         operation_description="用户收藏其他人的收藏夹",
@@ -405,6 +436,8 @@ class FavFavorite(APIView):
 
 # 用户删除收藏夹
 class UnfavFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户删除收藏夹',
         operation_description="用户删除收藏夹",
@@ -445,6 +478,8 @@ class UnfavFavorite(APIView):
         return Response({'message': 'Successfully unliked favorite.'}, status=status.HTTP_200_OK)
 #用户删除收藏的收藏夹
 class UnfavFavorite_id(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户删除收藏的收藏夹',
         operation_description="用户在其他人的界面删除收藏夹",
@@ -485,6 +520,8 @@ class UnfavFavorite_id(APIView):
         return Response({'message': 'Successfully unliked favorite.'}, status=status.HTTP_200_OK)
 # 用户点赞收藏夹
 class LikeFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户点赞收藏夹',
         operation_description="用户点赞收藏夹",
@@ -525,6 +562,8 @@ class LikeFavorite(APIView):
         return Response({'message': 'Successfully liked favorite.'}, status=status.HTTP_200_OK)
 # 用户取消点赞收藏夹
 class UnlikeFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户取消点赞收藏夹',
         operation_description="用户取消点赞收藏夹",
@@ -564,6 +603,8 @@ class UnlikeFavorite(APIView):
         return Response({'message': 'Successfully unliked favorite.'}, status=status.HTTP_200_OK)
 #判断用户是否收藏了某个用户的收藏夹
 class IsFavFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='判断用户是否收藏了某个用户的收藏夹',
         operation_description="判断用户是否收藏了某个用户的收藏夹",
@@ -604,6 +645,8 @@ class IsFavFavorite(APIView):
         return Response({'is_fav': False}, status=status.HTTP_200_OK)
 #判断用户是否点赞了某个用户的收藏夹
 class IsLikeFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary="判断用户是否点赞了某个用户的收藏夹",
         operation_description="判断用户是否点赞了某个用户的收藏夹",
@@ -645,6 +688,8 @@ class IsLikeFavorite(APIView):
 
 #用户查询个人信息
 class GetStudentInfo(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户查询个人信息',
         operation_description="用户查询个人信息",
@@ -666,6 +711,8 @@ class GetStudentInfo(APIView):
 
 #查看自己的收藏夹
 class GetFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看自己的收藏夹',
         operation_description="查看自己的收藏夹",
@@ -687,6 +734,8 @@ class GetFavorite(APIView):
         return Response({'favorites': list(favorites.values('name', 'type','F_id'))}, status=status.HTTP_200_OK)
 #查看自己收藏夹中的笔记
 class GetNoteInFavorite(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看自己收藏夹中的笔记',
         operation_description="查看自己收藏夹中的笔记",
@@ -716,6 +765,8 @@ class GetNoteInFavorite(APIView):
         return Response({'notes': list(notes.values('N_id', 'title'))}, status=status.HTTP_200_OK)
 #用户获取他人的收藏夹
 class GetFavorite_other(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户获取他人的收藏夹',
         operation_description="用户获取他人的收藏夹",
@@ -744,6 +795,8 @@ class GetFavorite_other(APIView):
         return Response({'favorites': list(favorites.values('name', 'type','F_id'))}, status=status.HTTP_200_OK)
 #用户获取他人的收藏夹中的笔记title
 class GetNoteInFavorite_other(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户获取他人的收藏夹中的笔记title',
         operation_description="用户获取他人的收藏夹中的笔记title",
@@ -780,6 +833,8 @@ class GetNoteInFavorite_other(APIView):
         return Response({'notes': list(notes.values('N_id', 'title'))}, status=status.HTTP_200_OK)
 #用户上传笔记
 class UploadNote(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户上传笔记',
         operation_description="用户上传笔记",
@@ -827,6 +882,8 @@ class UploadNote(APIView):
         return Response({'message': 'Successfully uploaded note.'}, status=status.HTTP_201_CREATED)
 #用户删除笔记
 class DeleteNote(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='用户删除笔记',
         operation_description="用户删除笔记",
@@ -942,6 +999,8 @@ class DownloadNote_other(APIView, DownloadBase):
         return self.download_file(note)
 #查看课程大纲
 class GetCourseOutline(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看课程大纲',
         operation_description='允许学生通过课程id来查看该课程的课程大纲。',
@@ -979,6 +1038,8 @@ class GetCourseOutline(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #查看课程介绍
 class GetCourseIntroduction(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看课程介绍',
         operation_description='允许学生通过课程id来查看该课程的课程介绍。',
@@ -1012,6 +1073,8 @@ class GetCourseIntroduction(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 
 class GetCourseCalendar(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看教学日历',
         operation_description='允许学生通过课程id来查看该课程的教学日历。',
@@ -1049,6 +1112,8 @@ class GetCourseCalendar(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #查看课程教师的信息
 class GetCourseTeacherInfo(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看课程教师的信息',
         operation_description='允许学生通过课程id来查看该课程的教师信息。',
@@ -1079,6 +1144,8 @@ class GetCourseTeacherInfo(APIView):
 
 #教师查看课件
 class GetCourseMaterial(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看课件',
         operation_description='允许学生通过课程id来查看该课程的课件。',
@@ -1121,6 +1188,8 @@ class GetCourseMaterial(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师查看试题
 class GetTest(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看试题',
         operation_description='允许学生通过课程id来查看该课程的试题。',
@@ -1163,6 +1232,8 @@ class GetTest(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师查看习题
 class GetExercise(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查看习题',
         operation_description='允许学生通过课程id来查看该课程的习题。',
@@ -1205,6 +1276,8 @@ class GetExercise(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #学生查看自己某个课程的所有作业
 class GetAllwork(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='学生查看自己某个课程的所有作业',
         operation_description='允许学生通过课程id来查看该课程的作业。',
@@ -1246,6 +1319,8 @@ class GetAllwork(APIView):
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #学生查看自己的某个作业
 class GetWork(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='学生查看自己的某个作业',
         operation_description='允许学生通过作业id来查看该作业的内容。',
@@ -1283,6 +1358,8 @@ class GetWork(APIView):
             return Response({"error": "作业不存在"}, status=status.HTTP_404_NOT_FOUND)
 #学生提交作业
 class SubmitWork(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='学生提交作业',
         operation_description='允许学生通过作业id来提交该作业。',
