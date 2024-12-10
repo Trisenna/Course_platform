@@ -1,18 +1,39 @@
 import os
 
 from django.db import models
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
-#学生
+
+
 class Student(models.Model):
     S_id = models.IntegerField(primary_key=True)
-    account = models.CharField(max_length=200, null=True, blank=True,unique=True)
-    password = models.CharField(max_length=200, null=True, blank=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student')
+    account = models.CharField(max_length=200, unique=True)  # 账号应为唯一且非空
     attention_num = models.IntegerField(null=True, blank=True)
-    name = models.CharField(max_length=20, null=True, blank=True)
+    name = models.CharField(max_length=20)
 
     def __str__(self):
         return f"Student ID: {self.S_id}"
 
+class Admin(models.Model):
+    A_id = models.AutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='admin')
+    account = models.CharField(max_length=20, unique=True)  # 账号应为唯一且非空
+    name = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f"Admin ID: {self.A_id}"
+
+class Teacher(models.Model):
+    T_id = models.AutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher')
+    account = models.CharField(max_length=20, unique=True)  # 账号应为唯一且非空
+    name = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f"Teacher ID: {self.T_id}"
 
 #回复
 class Reply(models.Model):
@@ -176,17 +197,6 @@ class Work(models.Model):
 
 
 
-#教师
-class Teacher(models.Model):
-    T_id = models.AutoField(primary_key=True,auto_created=True)
-    account = models.CharField(max_length=20, null=True, blank=True)
-    passward = models.CharField(max_length=20, null=True, blank=True)
-    name = models.CharField(max_length=20, null=True, blank=True)
-
-    def __str__(self):
-        return f"Teacher ID: {self.T_id}"
-
-
 
 
 
@@ -273,6 +283,24 @@ class Like(models.Model):
     def __str__(self):
         return f"Student ID: {self.S_id}, Favorite ID: {self.F_id}"
 
+@receiver(post_save, sender=Student)
+def create_user_for_student(sender, instance, created, **kwargs):
+    if created and not instance.user:
+        user = User.objects.create_user(username=instance.account, password=instance.password)
+        instance.user = user
+        instance.save()
+@receiver(post_save, sender=Teacher)
+def create_user_for_teacher(sender, instance, created, **kwargs):
+    if created and not instance.user:
+        user = User.objects.create_user(username=instance.account, password=instance.password)
+        instance.user = user
+        instance.save()
+@receiver(post_save, sender=Admin)
+def create_user_for_admin(sender, instance, created, **kwargs):
+    if created and not instance.user:
+        user = User.objects.create_user(username=instance.account, password=instance.password)
+        instance.user = user
+        instance.save()
 
 
 

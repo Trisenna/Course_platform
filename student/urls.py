@@ -8,8 +8,7 @@ urlpatterns = [
     path('<int:s_id>/course-notices/', MyCourseNotice.as_view(), name='my_course_notice'),
     #查看自己的系统通知
     path('<int:s_id>/system-notices/', MySystemNotice.as_view(), name='my_system_notice'),
-    #批量导入学生信息
-    path('import/', ImportStudent.as_view(), name='import_student'),
+
     # 增加学生关注学生
     path('<int:s_id>/follow/<int:b_id>/', FollowStudent.as_view(), name='follow_student'),
 # 获得学生关注的学生

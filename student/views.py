@@ -113,51 +113,6 @@ class MySystemNotice(APIView):
         return Response({'notices': list(notices)}, status=status.HTTP_200_OK)
 
 
-class ImportStudent(APIView):
-
-    @swagger_auto_schema(
-        operation_summary='批量导入学生信息',
-        operation_description="批量导入学生信息",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'csv_file': openapi.Schema(type=openapi.TYPE_FILE, description='CSV file')
-            }
-        ),
-        responses={201: '成功导入学生信息'}
-    )
-    def post(self, request, format=None):
-        if 'csv_file' not in request.FILES:
-            return Response({"error": "No file part"}, status=status.HTTP_400_BAD_REQUEST)
-
-        csv_file = request.FILES['csv_file']
-
-        try:
-            df = pd.read_csv(csv_file)
-
-            # 假设CSV文件的列名与模型字段匹配
-            students_data = df.to_dict(orient='records')
-
-            for data in students_data:
-                student = Student(
-                    S_id=data.get('S_id'),
-                    account=data.get('account'),
-                    password=make_password(data.get('password')),
-                    attention_num=data.get('attention_num'),
-                    name=data.get('name')
-                )  # 解包字典为关键字参数
-                student.save()
-                #为每个学生创建一个文件夹用于存放收藏夹
-                #在favorite文件夹下创建一个以学生id命名的文件夹
-                os.makedirs(f'favorite/{data.get("S_id")}')
-
-
-
-            return Response({"message": "学生信息导入成功"}, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 # 增加学生关注学生
 class FollowStudent(APIView):
     authentication_classes = [TokenAuthentication]

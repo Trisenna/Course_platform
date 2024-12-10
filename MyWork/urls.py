@@ -23,7 +23,7 @@ from drf_yasg import openapi
 from rest_framework import routers, permissions
 from rest_framework.documentation import include_docs_urls
 
-
+from MyWork.views import Login
 
 router = routers.DefaultRouter()
 
@@ -48,6 +48,8 @@ urlpatterns = [
     path('student/', include('student.urls')),
     # 教师
     path('teacher/', include('teacher.urls')),
+    # 管理员
+    path('admins/', include('admins.urls')),
     # 配置drf-yasg路由
     # 其他 URL 模式...
 # 配置django-rest-framwork API路由
@@ -57,6 +59,9 @@ urlpatterns = [
     path('docs/', include_docs_urls(title='测试工程API')),
     #生成接口文档json格式
     path('swagger-json/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    #登录url
+    path('login/', Login.as_view(), name='login'),
+
 
 
 
