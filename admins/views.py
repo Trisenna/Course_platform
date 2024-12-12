@@ -11,7 +11,8 @@ from rest_framework import status
 import os
 import csv
 
-from global_models.models import Student
+from global_models.models import Student, Teacher, Admin
+
 
 class ImportStudent(APIView):
 
@@ -70,6 +71,124 @@ class ImportStudent(APIView):
                     os.makedirs(f'favorite/{student.S_id}', exist_ok=True)
 
             return Response({"message": f"成功导入 {len(created_students)} 名学生的信息"},
+                            status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#批量导入教师信息
+class ImportTeacher(APIView):
+
+    @swagger_auto_schema(
+        operation_summary='批量导入教师信息',
+        operation_description="批量导入教师信息",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'csv_file': openapi.Schema(type=openapi.TYPE_FILE, description='CSV file')
+            }
+        ),
+        responses={201: '成功导入教师信息'}
+    )
+    # 取消csrf验证（仅用于开发或测试）
+    @csrf_exempt
+    def post(self, request, format=None):
+        if 'csv_file' not in request.FILES:
+            return Response({"error": "未找到文件"}, status=status.HTTP_400_BAD_REQUEST)
+
+        csv_file = request.FILES['csv_file']
+
+        # 检查文件扩展名是否为 .csv
+        if not csv_file.name.endswith('.csv'):
+            return Response({"error": "文件类型错误，请上传 CSV 文件"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 使用 Python 内置的 csv 模块读取文件
+            decoded_file = csv_file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file)
+
+            teachers_data = list(reader)  # 将 CSV 数据转换为列表
+
+            created_teachers = []
+            with transaction.atomic():
+                for data in teachers_data:
+                    # 创建 User 实例
+                    user = User.objects.create_user(
+                        username=data.get('account'),
+                        password=data.get('password')
+                    )
+
+                    # 创建 Teacher 实例并与 User 关联
+                    teacher = Teacher(
+                        T_id=data.get('T_id'),
+                        user=user,
+                        account=data.get('account'),
+                        name=data.get('name'),
+
+                    )
+                    teacher.save()
+
+                    created_teachers.append(teacher)
+
+            return Response({"message": f"成功导入 {len(created_teachers)} 名教师的信息"},
+                            status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#批量导入管理员信息
+class ImportAdmin(APIView):
+
+    @swagger_auto_schema(
+        operation_summary='批量导入管理员信息',
+        operation_description="批量导入管理员信息",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'csv_file': openapi.Schema(type=openapi.TYPE_FILE, description='CSV file')
+            }
+        ),
+        responses={201: '成功导入管理员信息'}
+    )
+    # 取消csrf验证（仅用于开发或测试）
+    @csrf_exempt
+    def post(self, request, format=None):
+        if 'csv_file' not in request.FILES:
+            return Response({"error": "未找到文件"}, status=status.HTTP_400_BAD_REQUEST)
+
+        csv_file = request.FILES['csv_file']
+
+        # 检查文件扩展名是否为 .csv
+        if not csv_file.name.endswith('.csv'):
+            return Response({"error": "文件类型错误，请上传 CSV 文件"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 使用 Python 内置的 csv 模块读取文件
+            decoded_file = csv_file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file)
+
+            admins_data = list(reader)  # 将 CSV 数据转换为列表
+
+            created_admins = []
+            with transaction.atomic():
+                for data in admins_data:
+                    # 创建 User 实例
+                    user = User.objects.create_user(
+                        username=data.get('account'),
+                        password=data.get('password')
+                    )
+
+                    # 创建 Admin 实例并与 User 关联
+                    admin = Admin(
+                        A_id=data.get('A_id'),
+                        user=user,
+                        account=data.get('account'),
+                        name=data.get('name'),
+                    )
+                    admin.save()
+
+                    created_admins.append(admin)
+
+            return Response({"message": f"成功导入 {len(created_admins)} 名管理员的信息"},
                             status=status.HTTP_201_CREATED)
 
         except Exception as e:

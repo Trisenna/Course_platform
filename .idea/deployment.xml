@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" uploadOnCheckin="86956a0d-098a-4008-903e-717ea5f0f5b2" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
       <paths name="TTT">
         <serverdata>
@@ -17,5 +17,6 @@
         </serverdata>
       </paths>
     </serverData>
+    <option name="myUploadOnCheckinName" value="stud@10.126.62.87:22 password (2)" />
   </component>
 </project>

@@ -4,4 +4,6 @@ from .views import *
 
 urlpatterns = [
 path('import/', ImportStudent.as_view(), name='import_student'),
+    path('import_teacher/', ImportTeacher.as_view(), name='import_teacher'),
+    path('import_admin/', ImportAdmin.as_view(), name='import_admin'),
 ]
