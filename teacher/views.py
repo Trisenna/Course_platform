@@ -1,5 +1,6 @@
 import token
 
+from django.db.models import Q
 from django.shortcuts import render
 from drf_yasg import openapi
 
@@ -994,3 +995,448 @@ class CorrectWork(APIView):
         except DoWork.DoesNotExist:
             return Response({"error": "学生未提��作业"}, status=status.HTTP_404_NOT_FOUND)
 
+
+
+# 用户发布帖子到课程下的评论区
+class CreateDiscuss(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='用户发布帖子到课程评论区',
+        operation_description="用户根据课程ID发布帖子，包含标题和内容",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'c_id',
+                openapi.IN_PATH,
+                description='课程ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'title': openapi.Schema(type=openapi.TYPE_STRING, description='帖子标题'),
+                'content': openapi.Schema(type=openapi.TYPE_STRING, description='帖子内容'),
+                'mentionList': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_INTEGER),
+                    description='被@用户的ID列表',
+                ),
+            },
+        ),
+        responses={
+            201: '成功创建帖子',
+        }
+    )
+
+    def post(self, request, t_id, c_id):
+        title = request.data.get('title')
+        content = request.data.get('content')
+        teacher = Teacher.objects.get(T_id=t_id)
+        #创建帖子
+        discuss = Discuss(title=title, content=content, T_id=teacher)
+        discuss.save()
+        #创建帖子和课程的联系
+        c = Course.objects.get(C_id=c_id)
+        discou = DisCou(C_id=c, D_id=discuss)
+        discou.save()
+
+        return Response({'message': 'Successfully created discuss.'}, status=status.HTTP_201_CREATED)
+
+# 查看课程的讨论区
+class GetDiscuss(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='查询此课程讨论区的所有帖子',
+        operation_description="根据课程ID查询此课程讨论区的所有帖子",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'c_id',
+                openapi.IN_PATH,
+                description='课程ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '返回帖子列表',
+        }
+    )
+
+    def get(self, request, t_id, c_id):
+        # 查询此课程讨论区的所有帖子
+        discous = DisCou.objects.filter(C_id=c_id)
+        all_discuss_ids = [discou.D_id.D_id for discou in discous]
+        all_discuss = Discuss.objects.filter(D_id__in=all_discuss_ids).values()
+
+        return Response({'all_discuss': list(all_discuss)}, status=status.HTTP_200_OK)
+
+# 用户在帖子下发表评论
+class CreateReply(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='用户在帖子下发表评论',
+        operation_description="用户在帖子下发表评论",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'answer': openapi.Schema(type=openapi.TYPE_STRING, description='用户的评论内容'),
+            },
+        ),
+        responses={
+            201: '成功评论帖子',
+        }
+    )
+
+    def post(self, request, t_id, d_id):
+        answer = request.data.get('answer')
+        teacher = Teacher.objects.get(T_id=t_id)
+        #用户评论帖子
+        reply = Reply(answer=answer, T_id=teacher)
+        reply.save()
+        #创建帖子和评论的联系
+        discuss = Discuss.objects.get(D_id=d_id)
+        disreply = DiscussReply(R_id=reply, D_id=discuss)
+        disreply.save()
+        return Response({'message': 'Successfully created reply.'}, status=status.HTTP_201_CREATED)
+
+# 查看帖子的评论
+class GetReply(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='查询此帖子的所有评论',
+        operation_description="根据帖子ID查询此帖子的所有评论",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '返回评论列表',
+        }
+    )
+
+    def get(self, request, t_id, d_id):
+        # 查询此帖子的所有评论
+        disreplys = DiscussReply.objects.filter(D_id=d_id)
+        all_replys_id = [disreply.R_id.R_id for disreply in disreplys]
+        all_replys = Reply.objects.filter(R_id__in=all_replys_id).values()
+
+        return Response({'all_replies': list(all_replys)}, status=status.HTTP_200_OK)
+
+# 用户点赞帖子
+class LikeDiscuss(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='用户点赞帖子',
+        operation_description="根据帖子ID点赞帖子",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功点赞帖子',
+        }
+    )
+
+    def post(self, request, t_id, d_id):
+        # 帖子的点赞数+1
+        discuss = Discuss.objects.get(D_id=d_id)
+        discuss.likes = discuss.likes+1
+        discuss.save()
+
+        return Response({'message': 'Successfully liked discuss.'}, status=status.HTTP_200_OK)
+
+# 用户点赞帖子的评论
+class LikeDiscussReply(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='用户点赞帖子的评论',
+        operation_description="根据帖子ID点赞帖子的评论",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'r_id',
+                openapi.IN_PATH,
+                description='帖子评论ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功点赞帖子的评论',
+        }
+    )
+
+    def post(self, request, t_id, d_id, r_id):
+        # 帖子某个评论的点赞数+1
+        reply = Reply.objects.get(R_id=r_id)
+        reply.likes = reply.likes+1
+        reply.save()
+
+        return Response({'message': 'Successfully liked discuss reply.'}, status=status.HTTP_200_OK)
+
+# 查询帖子的点赞数
+class GetLikesOfDiscuss(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='获取帖子的点赞数',
+        operation_description="根据帖子ID获取帖子的点赞数",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功返回帖子的点赞数',
+        }
+    )
+
+    def get(self, request, t_id, d_id):
+        discuss = Discuss.objects.get(D_id=d_id)
+
+        return Response({'discuss_likes': discuss.likes}, status=status.HTTP_200_OK)
+
+# 查询帖子评论的点赞数
+class GetLikesOfReply(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='获取帖子的评论的点赞数',
+        operation_description="根据评论ID获取点赞数",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'r_id',
+                openapi.IN_PATH,
+                description='评论ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功帖子的评论的点赞数',
+        }
+    )
+
+    def get(self, request, t_id, d_id, r_id):
+        reply = Reply.objects.get(R_id=r_id)
+
+        return Response({'reply_likes': reply.likes}, status=status.HTTP_200_OK)
+
+# 教师可以删除讨论区的帖子
+class DeleteDiscuss(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='教师删除讨论区的帖子',
+        operation_description="根据帖子ID删除帖子",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            204: '成功删除帖子',
+            400: '删除失败'
+        }
+    )
+
+    def post(self, request, t_id, d_id):
+        # 删除指定帖子
+        try:
+            discuss = Discuss.objects.get(D_id=d_id)
+            discuss.delete()
+            return Response({'message': 'Successfully deleted discuss.'}, status=status.HTTP_204_NO_CONTENT)
+        except Discuss.DoesNotExist:
+            return Response({'message': 'unSuccessfully deleted discuss.'}, status=status.HTTP_400_BAD_REQUEST)
+
+# 教师可以删除帖子的评论
+class DeleteReply(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='教师删除帖子的评论',
+        operation_description="根据评论ID删除帖子评论",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'r_id',
+                openapi.IN_PATH,
+                description='帖子评论ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功删除帖子的评论',
+        }
+    )
+    def post(self, request, t_id, d_id, r_id):
+        # 删除帖子的某条评论
+        reply = Reply.objects.get(R_id=r_id)
+        reply.delete()
+
+        return Response({'message': 'Successfully deleted discuss_reply.'}, status=status.HTTP_200_OK)
+
+# 用户通过关键词模糊搜索帖子和评论
+class SearchContent(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='用户通过关键词模糊搜索帖子和评论的内容',
+        operation_description="用户通过关键词模糊搜索帖子和评论的内容，包含标题和内容",
+        manual_parameters=[
+            openapi.Parameter(
+                'keyword',
+                openapi.IN_QUERY,
+                description='关键词',
+                required=True,
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={
+            200: '成功搜索含有关键词的帖子和评论',
+        }
+    )
+
+    def get(self, request, t_id):
+        keyword = request.query_params.get('keyword', '').strip()
+        if not keyword:
+            return Response({'message': 'Keyword is required for searching.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 在Discuss和Reply中模糊搜索
+        discuss_results = Discuss.objects.filter(
+            Q(title__icontains=keyword) | Q(content__icontains=keyword)
+        )
+        reply_results = Reply.objects.filter(
+            Q(answer__icontains=keyword)
+        )
+
+        # 序列化搜索结果
+        results = {
+            'discusses': [
+                {'D_id': d.D_id, 'title': d.title, 'content': d.content, 'likes': d.likes}
+                for d in discuss_results
+            ],
+            'replies': [
+                {'R_id': r.R_id, 'answer': r.answer, 'likes': r.likes}
+                for r in reply_results
+            ],
+        }
+
+        return Response(results, status=status.HTTP_200_OK)

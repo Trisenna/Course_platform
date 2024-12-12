@@ -46,15 +46,27 @@ urlpatterns = [
     #教师批改作业
     path('<int:t_id>/correct-work/', CorrectWork.as_view(), name='correct_work'),
 
-
-
-
-
-
-
-
-
-
-
+    # 教师查看课程的讨论区
+    path('<int:t_id>/<int:c_id>/discuss/', GetDiscuss.as_view(), name='discuss'),
+    # 教师在课程的讨论区发布帖子
+    path('<int:t_id>/<int:c_id>/creatediscuss/', CreateDiscuss.as_view(), name='post_discuss'),
+    # 用户对讨论区的帖子发表评论
+    path('<int:t_id>/discuss/<int:d_id>/', CreateReply.as_view(), name='post_reply'),
+    # 用户查看帖子的评论
+    path('<int:t_id>/discuss/<int:d_id>/reply', GetReply.as_view(), name='reply'),
+    # 用户点赞帖子
+    path('<int:t_id>/discuss/<int:d_id>/like-discuss', LikeDiscuss.as_view(), name='like_discuss'),
+    # 用户点赞帖子的评论
+    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>', LikeDiscussReply.as_view(), name='like_reply'),
+    # 获取帖子的点赞数
+    path('<int:t_id>/discuss/<int:d_id>/numOfLikes', GetLikesOfDiscuss.as_view(), name='likes_of_discuss'),
+    # 获取帖子的的评论的点赞数
+    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/numOfLikes', GetLikesOfReply.as_view(), name='likes_of_reply'),
+    # 教师删除讨论区的帖子
+    path('<int:t_id>/discuss/<int:d_id>/delete', DeleteDiscuss.as_view(), name='delete_discuss'),
+    # 教师删除讨论区帖子的评论
+    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/delete', DeleteReply.as_view(), name='delete_discuss_reply'),
+    # 用户通过关键词模糊搜索帖子和评论的内容
+    path('<int:t_id>/search', SearchContent.as_view(), name='search_content'),
 
 ]

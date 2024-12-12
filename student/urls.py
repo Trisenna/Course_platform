@@ -76,7 +76,22 @@ urlpatterns = [
 #学生提交作业
     path('<int:s_id>/upload-work/', SubmitWork.as_view(), name='upload_work'),
 
-
-
-
+    # 学生查看课程的讨论区
+    path('<int:s_id>/<int:c_id>/discuss/', GetDiscuss.as_view(), name='discuss'),
+    # 学生在课程的讨论区发布帖子
+    path('<int:s_id>/<int:c_id>/creatediscuss/', CreateDiscuss.as_view(), name='post_discuss'),
+    # 用户对讨论区的帖子发表评论
+    path('<int:s_id>/discuss/<int:d_id>/', CreateReply.as_view(), name='post_reply'),
+    # 用户查看帖子的评论
+    path('<int:s_id>/discuss/<int:d_id>/reply', GetReply.as_view(), name='reply'),
+    # 用户点赞帖子
+    path('<int:s_id>/discuss/<int:d_id>/like-discuss', LikeDiscuss.as_view(), name='like_discuss'),
+    # 用户点赞帖子的评论
+    path('<int:s_id>/discuss/<int:d_id>/<int:r_id>', LikeDiscussReply.as_view(), name='like_reply'),
+    # 获取帖子的点赞数
+    path('<int:s_id>/discuss/<int:d_id>/numOfLikes', GetLikesOfDiscuss.as_view(), name='likes_of_discuss'),
+    # 获取帖子的的评论的点赞数
+    path('<int:s_id>/discuss/<int:d_id>/<int:r_id>/numOfLikes', GetLikesOfReply.as_view(), name='likes_of_reply'),
+    # 用户通过关键词模糊搜索帖子和评论的内容
+    path('<int:s_id>/search', SearchContent.as_view(), name='search_content'),
 ]

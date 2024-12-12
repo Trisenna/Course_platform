@@ -35,14 +35,6 @@ class Teacher(models.Model):
     def __str__(self):
         return f"Teacher ID: {self.T_id}"
 
-#回复
-class Reply(models.Model):
-    R_id = models.IntegerField(primary_key=True)
-    answer = models.CharField(max_length=1000, null=True, blank=True)
-    name = models.CharField(max_length=100, null=True, blank=True)
-
-    def __str__(self):
-        return f"Reply ID: {self.R_id}"
 
 #课程
 class Course(models.Model):
@@ -135,17 +127,6 @@ class CourseResource(models.Model):
         return f"Course ID: {self.C_id}, Resource ID: {self.R_id}"
 
 
-#讨论贴
-class Discuss(models.Model):
-    D_id = models.IntegerField(primary_key=True)
-    title = models.CharField(max_length=100, null=True, blank=True)
-    content = models.CharField(max_length=1000, null=True, blank=True)
-    student = models.ForeignKey('Student', on_delete=models.CASCADE, null=True, blank=True)
-
-    def __str__(self):
-        return f"Discuss ID: {self.D_id}"
-
-
 #学生完成作业
 class DoWork(models.Model):
     S_id = models.ForeignKey('Student', on_delete=models.CASCADE, null=True, blank=True)
@@ -200,27 +181,6 @@ class Work(models.Model):
 
 
 
-#讨论贴的回复
-class DiscussReply(models.Model):
-    D_id = models.ForeignKey('Discuss', on_delete=models.CASCADE, null=True, blank=True)
-    R_id = models.ForeignKey('Reply', on_delete=models.CASCADE, null=True, blank=True)
-
-
-
-    def __str__(self):
-        return f"Discuss ID: {self.D_id}, Reply ID: {self.R_id}"
-
-
-
-#课程的讨论贴
-class DisCou(models.Model):
-    C_id = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
-    D_id = models.ForeignKey('Discuss', on_delete=models.CASCADE, null=True, blank=True)
-
-
-
-    def __str__(self):
-        return f"Course ID: {self.C_id}, Discuss ID: {self.D_id}"
 #通知
 class Information(models.Model):
     I_id = models.AutoField(primary_key=True,auto_created=True)
@@ -283,6 +243,72 @@ class Like(models.Model):
     def __str__(self):
         return f"Student ID: {self.S_id}, Favorite ID: {self.F_id}"
 
+
+
+#讨论贴
+class Discuss(models.Model):
+    D_id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=100, null=True, blank=True)
+    content = models.CharField(max_length=1000, null=True, blank=True)
+    S_id = models.ForeignKey('Student', on_delete=models.CASCADE, null=True, blank=True)
+    T_id = models.ForeignKey('Teacher', on_delete=models.CASCADE, null=True, blank=True)
+    likes = models.IntegerField(default=0, null=False)
+
+    # 确保S_id和T_id只存在一个
+    def save(self, *args, **kwargs):
+        if self.S_id and self.T_id:
+            raise ValueError("A post cannot have both a student and a teacher as the author.")
+        if not self.S_id and not self.T_id:
+            raise ValueError("A post must have either a student or a teacher as the author.")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Discuss ID: {self.D_id}"
+
+#课程的讨论贴
+class DisCou(models.Model):
+    C_id = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
+    D_id = models.ForeignKey('Discuss', on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return f"Course ID: {self.C_id}, Discuss ID: {self.D_id}"
+
+#回复
+class Reply(models.Model):
+    R_id = models.AutoField(primary_key=True)
+    answer = models.CharField(max_length=1000, null=True, blank=True)
+    S_id = models.ForeignKey('Student', on_delete=models.CASCADE, null=True, blank=True)
+    T_id = models.ForeignKey('Teacher', on_delete=models.CASCADE, null=True, blank=True)
+    likes = models.IntegerField(default=0, null=False)
+
+    # 确保S_id和T_id只存在一个
+    def save(self, *args, **kwargs):
+        if self.S_id and self.T_id:
+            raise ValueError("A post cannot have both a student and a teacher as the author.")
+        if not self.S_id and not self.T_id:
+            raise ValueError("A post must have either a student or a teacher as the author.")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Reply ID: {self.R_id}"
+
+#讨论贴的回复
+class DiscussReply(models.Model):
+    D_id = models.ForeignKey('Discuss', on_delete=models.CASCADE, null=True, blank=True)
+    R_id = models.ForeignKey('Reply', on_delete=models.CASCADE, null=True, blank=True)
+
+
+    def __str__(self):
+        return f"Discuss ID: {self.D_id}, Reply ID: {self.R_id}"
+
+
+    def __str__(self):
+        return f"Course ID: {self.C_id}, Discuss ID: {self.D_id}"
+
+
+
+
+
 @receiver(post_save, sender=Student)
 def create_user_for_student(sender, instance, created, **kwargs):
     if created and not instance.user:
@@ -301,46 +327,6 @@ def create_user_for_admin(sender, instance, created, **kwargs):
         user = User.objects.create_user(username=instance.account, password=instance.password)
         instance.user = user
         instance.save()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
