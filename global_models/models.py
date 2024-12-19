@@ -13,6 +13,8 @@ class Student(models.Model):
     account = models.CharField(max_length=200, unique=True)  # 账号应为唯一且非空
     attention_num = models.IntegerField(null=True, blank=True)
     name = models.CharField(max_length=20)
+    phoneNumber = models.CharField(max_length=20, default='')
+    email = models.CharField(max_length=40, default='')
 
     def __str__(self):
         return f"Student ID: {self.S_id}"
@@ -31,10 +33,11 @@ class Teacher(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher')
     account = models.CharField(max_length=20, unique=True)  # 账号应为唯一且非空
     name = models.CharField(max_length=20)
+    phoneNumber = models.CharField(max_length=20, default='')
+    email = models.CharField(max_length=40, default='')
 
     def __str__(self):
         return f"Teacher ID: {self.T_id}"
-
 
 #课程
 class Course(models.Model):
@@ -78,7 +81,6 @@ class StudentStudent(models.Model):
     def __str__(self):
         return f"Follower ID: {self.S_id}, Followed ID: {self.follow}"
 
-
 #学生上课课程
 class StudentCourse(models.Model):
     S_id = models.ForeignKey('Student', on_delete=models.CASCADE, null=True, blank=True)
@@ -87,7 +89,6 @@ class StudentCourse(models.Model):
 
     def __str__(self):
         return f"Student ID: {self.S_id}, Course ID: {self.C_id}"
-
 
 #资源，type为资源类型，0为课件，1为试题，2为习题
 class Resource(models.Model):
@@ -98,15 +99,6 @@ class Resource(models.Model):
 
     def __str__(self):
         return f"Resource ID: {self.R_id}"
-
-
-
-
-
-
-
-
-
 
 #老师讲课
 class CourseTeacher(models.Model):
@@ -125,7 +117,6 @@ class CourseResource(models.Model):
 
     def __str__(self):
         return f"Course ID: {self.C_id}, Resource ID: {self.R_id}"
-
 
 #学生完成作业
 class DoWork(models.Model):
@@ -162,8 +153,6 @@ class DoWork(models.Model):
     def __str__(self):
         return f"Do Work ID: {self.W_id}"
 
-
-
 #作业
 class Work(models.Model):
     W_id = models.AutoField(primary_key=True,auto_created=True)
@@ -175,12 +164,6 @@ class Work(models.Model):
     def __str__(self):
         return f"Work ID: {self.W_id}"
 
-
-
-
-
-
-
 #通知
 class Information(models.Model):
     I_id = models.AutoField(primary_key=True,auto_created=True)
@@ -188,7 +171,7 @@ class Information(models.Model):
 
     def __str__(self):
         return f"Informaiton ID: {self.I_id}"
-#发布通知，0是系统通知，1是老师发布的课程通知
+#发布通知，0是系统通知，1是教师发的课程通知和在课程讨论区被@的通知
 class Releasement(models.Model):
     R_id = models.AutoField(primary_key=True,auto_created=True)
     I_id = models.ForeignKey('Information', on_delete=models.CASCADE, null=True, blank=True)
@@ -196,6 +179,15 @@ class Releasement(models.Model):
     T_id = models.ForeignKey('Teacher', on_delete=models.CASCADE, null=True, blank=True)
     C_id = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
     type = models.IntegerField(null=True, blank=True)
+
+    # if type == 2:
+    #     # 通知类型为2时，确保被通知的用户只有一个，即S_id和T_id只存在一个
+    #     def save(self, *args, **kwargs):
+    #         if self.S_id and self.T_id:
+    #             raise ValueError("A post cannot have both a student and a teacher as the author.")
+    #         if not self.S_id and not self.T_id:
+    #             raise ValueError("A post must have either a student or a teacher as the author.")
+    #         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Releasement ID: {self.R_id}"
@@ -212,7 +204,6 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"Favorite ID: {self.name}"
-
 
 class Note(models.Model):
     N_id = models.AutoField(primary_key=True,auto_created=True)
@@ -242,6 +233,9 @@ class Like(models.Model):
 
     def __str__(self):
         return f"Student ID: {self.S_id}, Favorite ID: {self.F_id}"
+
+
+
 
 
 
@@ -305,7 +299,15 @@ class DiscussReply(models.Model):
     def __str__(self):
         return f"Course ID: {self.C_id}, Discuss ID: {self.D_id}"
 
+# 讨论贴的话题关键词
+class KeyWord(models.Model):
+    K_id = models.AutoField(primary_key=True)
+    content = models.CharField(max_length=100, null=True, blank=True)
 
+# 关键词与帖子的联系
+class KeyWordDiscuss(models.Model):
+    D_id = models.ForeignKey('Discuss', on_delete=models.CASCADE, null=True, blank=True)
+    K_id = models.ForeignKey('KeyWord', on_delete=models.CASCADE, null=True, blank=True)
 
 
 
@@ -327,11 +329,6 @@ def create_user_for_admin(sender, instance, created, **kwargs):
         user = User.objects.create_user(username=instance.account, password=instance.password)
         instance.user = user
         instance.save()
-
-
-
-
-
 
 
 

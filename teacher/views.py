@@ -1,6 +1,5 @@
 import token
 
-from django.db.models import Q
 from django.shortcuts import render
 from drf_yasg import openapi
 
@@ -13,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from global_models.models import *
 import os
+import time
 
 import pandas as pd
 from django.contrib.auth.hashers import make_password, check_password
@@ -23,6 +23,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
+from django.db.models import Q
 
 #教师查看自己所交的课程
 class GetCourse(APIView):
@@ -215,7 +216,7 @@ class AdjustCourseCalendar(APIView):
         course.save()
         return Response({'message':'success'})
 from django.http import FileResponse
-
+# 获取课程教学日历
 class GetCourseCalendar(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -427,8 +428,6 @@ class ValidateTeacherLogin(APIView):
         except Teacher.DoesNotExist:
             return Response({"error": "账号不存在"}, status=status.HTTP_404_NOT_FOUND)
 #教师上传课件
-
-
 class UploadTeachingMaterial(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -997,6 +996,71 @@ class CorrectWork(APIView):
 
 
 
+# 教师查询个人信息
+class GetTeacherInfo(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='教师查询个人信息',
+        operation_description="教师查询个人信息",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={200: '返回个人信息'}
+    )
+
+    def get(self, request, t_id):
+        teacher = get_object_or_404(Teacher, pk=t_id)
+        return Response({'teacher': {'account': teacher.account, 'name': teacher.name,
+                                     'phoneNumber': teacher.phoneNumber, 'email': teacher.email}}, status=status.HTTP_200_OK)
+
+# 教师修改个人信息
+class AdjustTeacherInfo(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='教师修改个人信息',
+        operation_description="教师修改邮箱或手机号",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, description='新邮箱'),
+                'phoneNumber': openapi.Schema(type=openapi.TYPE_STRING, description='新手机号')
+            }
+        ),
+        responses={200: '成功更新个人信息'}
+    )
+
+    def post(self, request, t_id):
+        teahcer = get_object_or_404(Teacher, pk=t_id)
+        email = request.data.get('email')
+        phoneNumber = request.data.get('phoneNumber')
+
+        if email:
+            teahcer.email = email
+
+        if phoneNumber:
+            teahcer.phoneNumber = phoneNumber
+
+        teahcer.save()
+        return Response({'status': 'success', 'message': 'Personal info updated successfully.'},
+                        status=status.HTTP_200_OK)
+
 # 用户发布帖子到课程下的评论区
 class CreateDiscuss(APIView):
     authentication_classes = [TokenAuthentication]
@@ -1027,8 +1091,15 @@ class CreateDiscuss(APIView):
                 'content': openapi.Schema(type=openapi.TYPE_STRING, description='帖子内容'),
                 'mentionList': openapi.Schema(
                     type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_INTEGER),
-                    description='被@用户的ID列表',
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='用户的ID'),
+                            'role': openapi.Schema(type=openapi.TYPE_STRING, description='用户的角色'),
+                        },
+                        required=['id', 'role'],
+                    ),
+                    description='被@用户的对象数组，包含ID和角色信息，学生role为student，教师role为teacher',
                 ),
             },
         ),
@@ -1048,6 +1119,23 @@ class CreateDiscuss(APIView):
         c = Course.objects.get(C_id=c_id)
         discou = DisCou(C_id=c, D_id=discuss)
         discou.save()
+
+        # 检查是否@其他用户
+        mentionList = request.data.get('mentionList', [])
+        if mentionList:
+            for mention in mentionList:
+                send_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+                information = Information.objects.create(content=(send_time + " 课程：" + c.name + " 有人@了你，请点击查看"))
+                id = mention['id']
+                role = mention['role']
+                course = Course.objects.get(C_id=c_id)
+                # 判断被@的用户是教师还是学生
+                if role == "student":
+                    student = Student.objects.get(S_id=id)
+                    Releasement.objects.create(S_id=student, I_id=information, type=1, C_id=course)
+                elif role == "teacher":
+                    teacher = Teacher.objects.get(T_id=id)
+                    Releasement.objects.create(T_id=teacher, I_id=information, type=1, C_id=course)
 
         return Response({'message': 'Successfully created discuss.'}, status=status.HTTP_201_CREATED)
 
@@ -1205,6 +1293,42 @@ class LikeDiscuss(APIView):
 
         return Response({'message': 'Successfully liked discuss.'}, status=status.HTTP_200_OK)
 
+# 用户取消点赞帖子
+class CancelLikeDiscuss(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='用户取消点赞帖子',
+        operation_description="根据帖子ID取消点赞帖子",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功取消点赞帖子',
+        }
+    )
+
+    def post(self, request, t_id, d_id):
+        # 帖子的点赞数-1
+        discuss = Discuss.objects.get(D_id=d_id)
+        discuss.likes = discuss.likes-1
+        discuss.save()
+
+        return Response({'message': 'Successfully cancel liked discuss.'}, status=status.HTTP_200_OK)
+
 # 用户点赞帖子的评论
 class LikeDiscussReply(APIView):
     authentication_classes = [TokenAuthentication]
@@ -1247,6 +1371,49 @@ class LikeDiscussReply(APIView):
         reply.save()
 
         return Response({'message': 'Successfully liked discuss reply.'}, status=status.HTTP_200_OK)
+
+# 用户取消点赞帖子的评论
+class CancelLikeDiscussReply(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='用户取消点赞帖子的评论',
+        operation_description="根据帖子评论ID取消点赞帖子的评论",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'r_id',
+                openapi.IN_PATH,
+                description='帖子评论ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功点赞帖子的评论',
+        }
+    )
+
+    def post(self, request, t_id, d_id, r_id):
+        # 帖子某个评论的点赞数-1
+        reply = Reply.objects.get(R_id=r_id)
+        reply.likes = reply.likes-1
+        reply.save()
+
+        return Response({'message': 'Successfully cancel liked discuss reply.'}, status=status.HTTP_200_OK)
 
 # 查询帖子的点赞数
 class GetLikesOfDiscuss(APIView):
@@ -1440,3 +1607,250 @@ class SearchContent(APIView):
         }
 
         return Response(results, status=status.HTTP_200_OK)
+
+# 获取某课程的所有教师和学生
+class GetList(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='获取某课程的所有教师和学生',
+        operation_description="用户输入@后给用户返回此课程的所有教师和学生",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'c_id',
+                openapi.IN_PATH,
+                description='课程ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功返回此课程的所有学生和教师的id和name',
+        }
+    )
+
+    def get(self, request, t_id, c_id):
+        # 查询课程的教师
+        teachers = CourseTeacher.objects.filter(C_id=c_id).exclude(T_id=t_id)
+        all_teachers_ids = [teacher.T_id.T_id for teacher in teachers]
+        all_teachers = Teacher.objects.filter(T_id__in=all_teachers_ids).values('T_id', 'name')
+        # 查询课程的所有学生
+        student_courses = StudentCourse.objects.filter(C_id=c_id)
+        all_students_ids = [student_course.S_id.S_id for student_course in student_courses]
+        all_students = Student.objects.filter(S_id__in=all_students_ids).values('S_id', 'name')
+
+        return Response({
+            'teachers': list(all_teachers),
+            'students': list(all_students)
+        }, status=status.HTTP_200_OK)
+
+# 查询某个教师在课程讨论区被@的通知
+class MyCourseNotice(APIView):
+    # authentication_classes = [TokenAuthentication]
+    # permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='查询某个教师的所有课程通知(包括该用户在课程讨论区被@的通知)',
+        operation_description="查询某个教师的所有课程通知的C_id和对应的I_id,type=1",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+
+        responses={200: '返回教师的课程通知列表'}
+    )
+
+    def get(self, request, t_id):
+        # 查询被@的通知
+        notices = Releasement.objects.filter(S_id__isnull=True, T_id=t_id, type=1).values('C_id', 'I_id')
+        #根据C_id查到课程名，根据I_id查到通知内容
+        for notice in notices:
+            course = Course.objects.filter(C_id=notice['C_id']).values('name').first()
+            information = Information.objects.filter(I_id=notice['I_id']).values('content').first()
+            notice['course'] = course
+            notice['information'] = information
+
+
+        return Response({'notices': list(notices)}, status=status.HTTP_200_OK)
+
+# 查询某个教师的所有系统通知
+class MySystemNotice(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary= '查询某个教师的所有系统通知',
+        operation_description="查询某个教师的所有系统通知的I_id",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+
+        responses={200: '返回教师的系统通知列表'}
+    )
+
+    def get(self, request, t_id):
+        exists_teacher = Teacher.objects.filter(T_id=t_id).exists()
+        if not exists_teacher:
+            return Response({"error": "该教师不存在"}, status=status.HTTP_404_NOT_FOUND)
+        exists_releasement = Releasement.objects.filter(T_id=t_id, type=0).exists()
+        print(exists_releasement)
+        if not exists_releasement:
+            return Response({"error": "该教师没有系统通知"}, status=status.HTTP_404_NOT_FOUND)
+        notices = Releasement.objects.filter(T_id=t_id, type=0).values('I_id')
+        #根据I_id查到通知内容
+        for notice in notices:
+            information = Information.objects.filter(I_id=notice['I_id']).values('content').first()
+            notice['information'] = information
+        return Response({'notices': list(notices)}, status=status.HTTP_200_OK)
+
+# 处理用户发布帖子的关键词
+class DiscussKeyword(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='处理用户发布帖子的关键词',
+        operation_description="处理用户发布帖子的关键词，建立其与帖子的联系",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'd_id',
+                openapi.IN_PATH,
+                description='帖子ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'keyWordList': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        description='关键词的内容',
+                    ),
+                    description='讨论贴的关键词'
+                ),
+
+            },
+        ),
+        responses={
+            201: '成功创建帖子',
+        }
+    )
+    def post(self, request, t_id, d_id):
+        keyWordList = request.data.get('keyWordList')
+        # 检查用户是否#关键词
+        if keyWordList:
+            # 建立每一个关键词与它所属帖子的联系
+            for content in keyWordList:
+                print(content)
+                keyword = KeyWord.objects.create(content=content)
+                discuss = Discuss.objects.get(D_id=d_id)
+                keyword_discuss = KeyWordDiscuss.objects.create(D_id=discuss, K_id=keyword)
+
+        return Response({'message': 'Successfully created discuss.'}, status=status.HTTP_201_CREATED)
+
+# 获取某课程讨论区的所有话题关键词
+class GetKeyWords(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='获取某课程讨论区的所有话题关键词',
+        operation_description="获取某课程讨论区的所有话题关键词",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'c_id',
+                openapi.IN_PATH,
+                description='课程ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功返回此课程的所有话题关键词',
+        }
+    )
+    def get(self, request, t_id, c_id):
+        # 查询c_id课程的所有帖子
+        discuss_s = DisCou.objects.filter(C_id=c_id).select_related('D_id')
+        # 获取与这些讨论帖相关的所有关键词ID
+        keyword_ids = KeyWordDiscuss.objects.filter(D_id__in=[d.D_id for d in discuss_s]).values_list('K_id',)
+        # 获取所有关联的关键词
+        keywords = KeyWord.objects.filter(K_id__in=keyword_ids).values('K_id', 'content')
+
+        return Response({'keywords': list(keywords)}, status=status.HTTP_200_OK)
+
+# 获取此课程讨论区含有目标关键词的所有帖子
+class GetALLTargetDiscuss(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='获取此课程讨论区含有目标关键词的所有帖子',
+        operation_description="获取c_id课程讨论区含有k_id关键词的所有帖子",
+        manual_parameters=[
+            openapi.Parameter(
+                't_id',
+                openapi.IN_PATH,
+                description='教师ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'c_id',
+                openapi.IN_PATH,
+                description='课程ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'k_id',
+                openapi.IN_PATH,
+                description='关键词ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        responses={
+            200: '成功返回此课程含有目标关键词的所有帖子',
+        }
+    )
+    def get(self, request, t_id, c_id, k_id):
+        # 查询c_id课程的所有帖子
+        discuss_ids = DisCou.objects.filter(C_id=c_id).values_list('D_id', flat=True)
+        # 查询这些帖子中含有目标关键词的帖子ID
+        target_discuss_ids = KeyWordDiscuss.objects.filter(D_id__in=discuss_ids, K_id=k_id).values_list('D_id',
+                                                                                                        flat=True)
+        # 获取帖子详情
+        discusses = Discuss.objects.filter(D_id__in=target_discuss_ids).values()
+
+        return Response({'discusses': list(discusses)}, status=status.HTTP_200_OK)

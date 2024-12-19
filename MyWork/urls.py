@@ -23,7 +23,7 @@ from drf_yasg import openapi
 from rest_framework import routers, permissions
 from rest_framework.documentation import include_docs_urls
 
-from MyWork.views import Login
+from MyWork.views import Login, ResetPassword
 
 router = routers.DefaultRouter()
 
@@ -61,6 +61,8 @@ urlpatterns = [
     path('swagger-json/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     #登录url
     path('login/', Login.as_view(), name='login'),
+    # 用户重置密码
+    path('resetPassword/', ResetPassword.as_view(), name='resetPassword'),
 
 
 

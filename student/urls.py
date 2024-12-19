@@ -19,8 +19,6 @@ urlpatterns = [
 # 学生调整个人信息
     path('<int:s_id>/adjust-info/', AdjustStudentInfo.as_view(), name='adjust_student_info'),
 # 验证学生登录
-    path('login/', ValidateStudentLogin.as_view(), name='validate_student_login'),
-# 验证学生登录
     path('favorites/create/<int:s_id>/', CreateFavorite.as_view(), name='create_favorite'),
 # 用户收藏其他人的收藏夹
     path('favorites/fav/<int:s_id>/<int:b_id>/', FavFavorite.as_view(), name='fav_favorite'),
@@ -76,6 +74,7 @@ urlpatterns = [
 #学生提交作业
     path('<int:s_id>/upload-work/', SubmitWork.as_view(), name='upload_work'),
 
+
     # 学生查看课程的讨论区
     path('<int:s_id>/<int:c_id>/discuss/', GetDiscuss.as_view(), name='discuss'),
     # 学生在课程的讨论区发布帖子
@@ -86,12 +85,24 @@ urlpatterns = [
     path('<int:s_id>/discuss/<int:d_id>/reply', GetReply.as_view(), name='reply'),
     # 用户点赞帖子
     path('<int:s_id>/discuss/<int:d_id>/like-discuss', LikeDiscuss.as_view(), name='like_discuss'),
+    # 用户取消点赞帖子
+    path('<int:s_id>/discuss/<int:d_id>/cancel-like-discuss', CancelLikeDiscuss.as_view(), name='cancel_like_discuss'),
     # 用户点赞帖子的评论
-    path('<int:s_id>/discuss/<int:d_id>/<int:r_id>', LikeDiscussReply.as_view(), name='like_reply'),
+    path('<int:s_id>/discuss/<int:d_id>/<int:r_id>/like-reply', LikeDiscussReply.as_view(), name='like_reply'),
+    # 用户取消点赞帖子的评论
+    path('<int:s_id>/discuss/<int:d_id>/<int:r_id>/cancel-like-reply', CancelLikeDiscussReply.as_view(), name='cancel_like_reply'),
     # 获取帖子的点赞数
     path('<int:s_id>/discuss/<int:d_id>/numOfLikes', GetLikesOfDiscuss.as_view(), name='likes_of_discuss'),
     # 获取帖子的的评论的点赞数
     path('<int:s_id>/discuss/<int:d_id>/<int:r_id>/numOfLikes', GetLikesOfReply.as_view(), name='likes_of_reply'),
     # 用户通过关键词模糊搜索帖子和评论的内容
     path('<int:s_id>/search', SearchContent.as_view(), name='search_content'),
+    # 获取某课程的所有教师和学生
+    path('<int:s_id>/<int:c_id>/allCourseUsers', GetList.as_view(), name='get_all_course_users'),
+    # 获取某课程讨论区的所有话题关键词
+    path('<int:s_id>/<int:c_id>/allKeyWords', GetKeyWords.as_view(), name='get_all_keywords'),
+    # 处理用户发布帖子的关键词
+    path('<int:s_id>/discuss/<int:d_id>', DiscussKeyword.as_view(), name='discuss_keyword'),
+    # 获取此课程讨论区含有目标关键词的所有帖子
+    path('<int:s_id>/<int:c_id>/<int:k_id>/targetDiscuss', GetALLTargetDiscuss.as_view(), name='get_all_target_discuss'),
 ]
