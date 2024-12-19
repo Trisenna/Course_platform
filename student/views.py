@@ -428,7 +428,7 @@ class UnfavFavorite(APIView):
             link.save()
         else:
             #如果没有链接的收藏夹，直接删除此收藏夹路径下的所有文件
-            os.removedirs(f'favorite/{s_id}/{name}')
+            os.removedirs(f'favorite/{s_id.S_id}/{name}')
 
         favorite.delete()
         return Response({'message': 'Successfully unliked favorite.'}, status=status.HTTP_200_OK)
