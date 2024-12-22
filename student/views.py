@@ -23,8 +23,8 @@ from global_models.models import *
 
 # 查询学生的所有课程
 class MyCourseList(APIView):
-    # authentication_classes = [TokenAuthentication]
-    # permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='查询某个学生的所有课程的名字',
         operation_description="查询某个学生的所有课程的name, C_id",
@@ -208,8 +208,8 @@ class UnfollowStudent(APIView):
 
 # 学生修改个人信息
 class AdjustStudentInfo(APIView):
-    # authentication_classes = [TokenAuthentication]
-    # permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='学生修改个人信息',
         operation_description="学生修改邮箱或手机号",
@@ -1360,18 +1360,6 @@ class CreateDiscuss(APIView):
                         required=['id', 'role'],
                     ),
                     description='被@用户的对象数组，包含ID和角色信息，学生role为student，教师role为teacher',
-                ),
-                'keyWordList': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='用户的ID'),
-                            'content': openapi.Schema(type=openapi.TYPE_STRING, description='关键词的内容'),
-                        },
-                        required=['id', 'content'],
-                    ),
-                    description='用户#',
                 ),
 
             },
