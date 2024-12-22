@@ -10,4 +10,16 @@ urlpatterns = [
     path('publish_system_notice/', PublishSystemNotice.as_view(), name='publish_system_notice'),
     # 获取所有的学生和教师
     path('get_all_users/', GetAllUsers.as_view(), name='get_all_users'),
+    # 查询所有课程
+    path('get_all_courses', GetAllCourses.as_view(), name='get_all_courses'),
+    # 创建课程
+    path('create_course/', CreateCourse.as_view(), name='create_course'),
+    # 为课程添加学生和教师
+    path('add_course_user/', AddCourseUser.as_view(), name='add_course_user'),
+    # 删除课程
+    path('delete_course/', DeleteCourse.as_view(), name='delete_course'),
+    # 获取某个课程的所有学生
+    path('get_course_students/', GetCourseStudents.as_view(), name='get_course_students'),
+    # 获取某个课程的所有教师
+    path('get_course_teachers/', GetCourseTeachers.as_view(), name='get_course_teachers'),
 ]

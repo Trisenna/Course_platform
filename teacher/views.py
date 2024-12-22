@@ -994,8 +994,6 @@ class CorrectWork(APIView):
         except DoWork.DoesNotExist:
             return Response({"error": "学生未提��作业"}, status=status.HTTP_404_NOT_FOUND)
 
-
-
 # 教师查询个人信息
 class GetTeacherInfo(APIView):
     authentication_classes = [TokenAuthentication]

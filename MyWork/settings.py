@@ -100,19 +100,19 @@ WSGI_APPLICATION = 'MyWork.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-    #使用mysql
     # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'NAME': 'work',
-    #     'USER': 'root',
-    #     'PASSWORD': 'qa091923',
-    #     'HOST': 'localhost',
-    #     'PORT': '3306',
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
     # }
+    # 使用mysql
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'course_platform',
+        'USER': 'root',
+        'PASSWORD': 'Lyd@4213',
+        'HOST': 'localhost',
+        'PORT': '3306',
+    }
 
 }
 

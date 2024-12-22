@@ -197,11 +197,10 @@ class ImportAdmin(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 # 教务处发布系统通知
 class PublishSystemNotice(APIView):
-    # authentication_classes = [TokenAuthentication]
-    # permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='教务处发布系统通知',
         operation_description='教务处通过选择要发送的教师和学生发布系统通知',
@@ -255,11 +254,10 @@ class PublishSystemNotice(APIView):
 
         return Response({"message": "success"})
 
-
 # 获取所有的学生和教师
 class GetAllUsers(APIView):
-    # authentication_classes = [TokenAuthentication]
-    # permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='获取所有的学生和教师',
         operation_description="教务处获取所有的学生和教师",
@@ -271,11 +269,213 @@ class GetAllUsers(APIView):
     )
     def get(self, request):
         # 查询所有教师
-        all_teachers = Teacher.objects.all().values('T_id', 'name')
+        all_teachers = Teacher.objects.all().values('T_id', 'account', 'name', 'email', 'phoneNumber')
         # 查询所有学生
-        all_students = Student.objects.all().values('S_id', 'name')
+        all_students = Student.objects.all().values('S_id', 'account', 'name', 'email', 'phoneNumber')
 
         return Response({
             'teachers': list(all_teachers),
             'students': list(all_students)
         }, status=status.HTTP_200_OK)
+
+# 查询所有课程
+class GetAllCourses(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='查询所有课程',
+        operation_description="教务处查询所有课程",
+        responses={
+            200: '成功返回所有课程',
+        }
+    )
+    def get(self, request):
+        # 查询所有课程
+        all_course = Course.objects.all().values()
+
+        return Response({'courses': list(all_course),}, status=status.HTTP_200_OK)
+
+# 创建课程
+class CreateCourse(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='创建课程',
+        operation_description="教务处查询所有课程",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='课程名'),
+                'introduction': openapi.Schema(type=openapi.TYPE_STRING, description='课程介绍'),
+                'period': openapi.Schema(type=openapi.TYPE_INTEGER, description='时段(1-8)'),
+                'credit': openapi.Schema(type=openapi.TYPE_INTEGER, description='学分'),
+                'hours': openapi.Schema(type=openapi.TYPE_INTEGER, description='学时'),
+                'place': openapi.Schema(type=openapi.TYPE_STRING, description='上课地点'),
+            }
+        ),
+        responses={
+            201: '成功创建课程',
+        }
+    )
+    def post(self, request):
+        name = request.data.get('name')
+        introduction = request.data.get('introduction')
+        period = request.data.get('period')
+        credit = request.data.get('credit')
+        hours = request.data.get('hours')
+        place = request.data.get('place')
+        print(name)
+        # 创建课程
+        course = Course.objects.create(name=name, introduction=introduction,
+                                       period=period,credit=credit,
+                                       hours=hours, place=place)
+
+        return Response({'message': '成功创建课程'}, status=status.HTTP_201_CREATED)
+
+# 为课程添加学生和教师
+class AddCourseUser(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='为课程添加学生和教师',
+        operation_description="根据课程id，学生id和教师id为课程添加学生和教师",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'C_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+                'students': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_INTEGER,
+                        description='学生的ID'
+                    ),
+                    description='要添加的学生的id数组',
+                ),
+                'teachers': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_INTEGER,
+                        description='教师的ID'
+                    ),
+                    description='要添加的教师的id数组',
+                ),
+            }
+        ),
+        responses={
+            201: '成功为课程添加学生和教师',
+        }
+    )
+    def post(self, request):
+        c_id = request.data.get('C_id')
+        # 获取目标课程
+        course = Course.objects.get(C_id=c_id)
+        students = request.data.get('students', [])
+        teachers = request.data.get('teachers', [])
+        # 添加学生
+        for student_id in students:
+            student = Student.objects.get(S_id=student_id)
+            if student is None:
+                return Response({'error': 'id为' + student_id + '的学生不存在'}, status=status.HTTP_404_NOT_FOUND)
+            StudentCourse.objects.create(C_id=course, S_id=student)
+
+        # 添加教师
+        for teacher_id in teachers:
+            teacher = Teacher.objects.get(T_id=teacher_id)
+            if teacher is None:
+                return Response({'error': 'id为' + teacher_id + '的教师不存在'}, status=status.HTTP_404_NOT_FOUND)
+            CourseTeacher.objects.create(C_id=course, T_id=teacher)
+
+        return Response({'message': '成功为课程添加教师和学生'}, status=status.HTTP_201_CREATED)
+
+# 删除课程
+class DeleteCourse(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='删除课程',
+        operation_description="根据课程id删除目标课程",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'C_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            204: '成功删除课程',
+        }
+    )
+
+    def delete(self, request):
+        try:
+            course = Course.objects.get(C_id=request.data.get('C_id'))
+            course.delete()
+        except Course.DoesNotExist:
+            return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'message': '成功删除课程'}, status=status.HTTP_204_NO_CONTENT)
+
+# 查询某个课程的所有学生
+class GetCourseStudents(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='查询某个课程的所有学生',
+        operation_description="教务处根据课程id查询该课程的所有学生",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'C_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: '成功返回该课程的所有学生',
+        }
+    )
+    def get(self, request):
+        c_id = request.data.get('C_id')
+        course = Course.objects.get(C_id=c_id)
+        # 查询c_id课程的所有学生
+        student_ids = StudentCourse.objects.filter(C_id=course).values_list('S_id', flat=True)
+        all_students = Student.objects.filter(S_id__in=student_ids)
+        serialized_students = [{
+            'S_id': student.S_id,
+            'account': student.account,
+            'name': student.name,
+            'email': student.email,
+            'phoneNumber': student.phoneNumber,
+        } for student in all_students]
+
+        return Response({'students': serialized_students}, status=status.HTTP_200_OK)
+
+# 查询某个课程的所有教师
+class GetCourseTeachers(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='查询某个课程的所有教师',
+        operation_description="教务处根据课程id查询该课程的所有教师",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'C_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+            }
+        ),
+        responses={
+            200: '成功返回该课程的所有教师',
+        }
+    )
+    def get(self, request):
+        c_id = request.data.get('C_id')
+        course = Course.objects.get(C_id=c_id)
+        # 查询c_id课程的所有教师
+        teacher_ids = CourseTeacher.objects.filter(C_id=course).values_list('T_id', flat=True)
+        all_teachers = Teacher.objects.filter(T_id__in=teacher_ids)
+        serialized_teachers = [{
+            'T_id': teacher.T_id,
+            'account': teacher.account,
+            'name': teacher.name,
+            'email': teacher.email,
+            'phoneNumber': teacher.phoneNumber,
+        } for teacher in all_teachers]
+
+        return Response({'teachers': serialized_teachers, }, status=status.HTTP_200_OK)
