@@ -421,19 +421,26 @@ class GetCourseStudents(APIView):
     @swagger_auto_schema(
         operation_summary='查询某个课程的所有学生',
         operation_description="教务处根据课程id查询该课程的所有学生",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'C_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
-            }
-        ),
+        manual_parameters=[
+            openapi.Parameter(
+                'c_id',
+                openapi.IN_PATH,
+                description='课程ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
         responses={
             200: '成功返回该课程的所有学生',
         }
     )
-    def get(self, request):
-        c_id = request.data.get('C_id')
-        course = Course.objects.get(C_id=c_id)
+    def get(self, request, c_id):
+        try:
+            course = Course.objects.get(C_id=c_id)
+        except Course.DoesNotExist:
+            c_id = str(c_id)
+            return Response({"error": "id为" + c_id + "的课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+
         # 查询c_id课程的所有学生
         student_ids = StudentCourse.objects.filter(C_id=course).values_list('S_id', flat=True)
         all_students = Student.objects.filter(S_id__in=student_ids)
@@ -454,19 +461,25 @@ class GetCourseTeachers(APIView):
     @swagger_auto_schema(
         operation_summary='查询某个课程的所有教师',
         operation_description="教务处根据课程id查询该课程的所有教师",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'C_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
-            }
-        ),
+        manual_parameters=[
+            openapi.Parameter(
+                'c_id',
+                openapi.IN_PATH,
+                description='课程ID',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
         responses={
             200: '成功返回该课程的所有教师',
         }
     )
-    def get(self, request):
-        c_id = request.data.get('C_id')
-        course = Course.objects.get(C_id=c_id)
+    def get(self, request,c_id):
+        try:
+            course = Course.objects.get(C_id=c_id)
+        except Course.DoesNotExist:
+            c_id = str(c_id)
+            return Response({"error": "id为" + c_id + "的课程不存在"}, status=status.HTTP_404_NOT_FOUND)
         # 查询c_id课程的所有教师
         teacher_ids = CourseTeacher.objects.filter(C_id=course).values_list('T_id', flat=True)
         all_teachers = Teacher.objects.filter(T_id__in=teacher_ids)
