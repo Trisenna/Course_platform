@@ -58,37 +58,37 @@ urlpatterns = [
     # 用户对讨论区的帖子发表评论
     path('<int:t_id>/discuss/<int:d_id>/', CreateReply.as_view(), name='post_reply'),
     # 用户查看帖子的评论
-    path('<int:t_id>/discuss/<int:d_id>/reply', GetReply.as_view(), name='reply'),
+    path('<int:t_id>/discuss/<int:d_id>/reply/', GetReply.as_view(), name='reply'),
     # 用户点赞帖子
-    path('<int:t_id>/discuss/<int:d_id>/like-discuss', LikeDiscuss.as_view(), name='like_discuss'),
+    path('<int:t_id>/discuss/<int:d_id>/like-discuss/', LikeDiscuss.as_view(), name='like_discuss'),
     # 用户取消点赞帖子
-    path('<int:t_id>/discuss/<int:d_id>/cancel-like-discuss', CancelLikeDiscuss.as_view(), name='cancel_like_discuss'),
+    path('<int:t_id>/discuss/<int:d_id>/cancel-like-discuss/', CancelLikeDiscuss.as_view(), name='cancel_like_discuss'),
     # 用户点赞帖子的评论
-    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/like-reply', LikeDiscussReply.as_view(), name='like_reply'),
+    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/like-reply/', LikeDiscussReply.as_view(), name='like_reply'),
     # 用户取消点赞帖子的评论
-    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/cancel-like-reply', CancelLikeDiscussReply.as_view(), name='cancel_like_reply'),
+    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/cancel-like-reply/', CancelLikeDiscussReply.as_view(), name='cancel_like_reply'),
     # 获取帖子的点赞数
-    path('<int:t_id>/discuss/<int:d_id>/numOfLikes', GetLikesOfDiscuss.as_view(), name='likes_of_discuss'),
+    path('<int:t_id>/discuss/<int:d_id>/numOfLikes/', GetLikesOfDiscuss.as_view(), name='likes_of_discuss'),
     # 获取帖子的的评论的点赞数
-    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/numOfLikes', GetLikesOfReply.as_view(), name='likes_of_reply'),
+    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/numOfLikes/', GetLikesOfReply.as_view(), name='likes_of_reply'),
     # 教师删除讨论区的帖子
-    path('<int:t_id>/discuss/<int:d_id>/delete', DeleteDiscuss.as_view(), name='delete_discuss'),
+    path('<int:t_id>/discuss/<int:d_id>/delete/', DeleteDiscuss.as_view(), name='delete_discuss'),
     # 教师删除讨论区帖子的评论
-    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/delete', DeleteReply.as_view(), name='delete_discuss_reply'),
+    path('<int:t_id>/discuss/<int:d_id>/<int:r_id>/delete/', DeleteReply.as_view(), name='delete_discuss_reply'),
     # 用户通过关键词模糊搜索帖子和评论的内容
-    path('<int:t_id>/search', SearchContent.as_view(), name='search_content'),
+    path('<int:t_id>/search/', SearchContent.as_view(), name='search_content'),
     # 查询某个教师的所有课程通知和被@的通知
-    path('<int:t_id>/course-notices', MyCourseNotice.as_view(), name='course_notices'),
+    path('<int:t_id>/course-notices/', MyCourseNotice.as_view(), name='course_notices'),
     # 获取某课程的所有教师和用户
-    path('<int:t_id>/<int:c_id>/allCourseUsers', GetList.as_view(), name='get_all_course_users'),
+    path('<int:t_id>/<int:c_id>/allCourseUsers/', GetList.as_view(), name='get_all_course_users'),
     # 查询某个教师的所有系统通知
-    path('<int:t_id>/system-notices', MySystemNotice.as_view(), name='get_all_system_notices'),
+    path('<int:t_id>/system-notices/', MySystemNotice.as_view(), name='get_all_system_notices'),
     # 获取某课程讨论区的所有话题关键词
-    path('<int:t_id>/<int:c_id>/allKeyWords', GetKeyWords.as_view(), name='get_all_keywords'),
+    path('<int:t_id>/<int:c_id>/allKeyWords/', GetKeyWords.as_view(), name='get_all_keywords'),
     # 处理用户发布帖子的关键词
-    path('<int:t_id>/discuss/<int:d_id>', DiscussKeyword.as_view(), name='discuss_keyword'),
+    path('<int:t_id>/discuss/<int:d_id>/', DiscussKeyword.as_view(), name='discuss_keyword'),
     # 获取此课程讨论区含有目标关键词的所有帖子
-    path('<int:t_id>/<int:c_id>/<int:k_id>/targetDiscuss', GetALLTargetDiscuss.as_view(),name='get_all_target_discuss'),
+    path('<int:t_id>/<int:c_id>/<int:k_id>/targetDiscuss/', GetALLTargetDiscuss.as_view(),name='get_all_target_discuss'),
 
 
 

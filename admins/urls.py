@@ -11,7 +11,7 @@ urlpatterns = [
     # 获取所有的学生和教师
     path('get_all_users/', GetAllUsers.as_view(), name='get_all_users'),
     # 查询所有课程
-    path('get_all_courses', GetAllCourses.as_view(), name='get_all_courses'),
+    path('get_all_courses/', GetAllCourses.as_view(), name='get_all_courses'),
     # 创建课程
     path('create_course/', CreateCourse.as_view(), name='create_course'),
     # 为课程添加学生和教师
