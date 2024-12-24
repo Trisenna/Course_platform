@@ -19,7 +19,7 @@ urlpatterns = [
     # 删除课程
     path('delete_course/', DeleteCourse.as_view(), name='delete_course'),
     # 获取某个课程的所有学生
-    path('get_course_students/', GetCourseStudents.as_view(), name='get_course_students'),
+    path('get_course_students/<int:c_id>/', GetCourseStudents.as_view(), name='get_course_students'),
     # 获取某个课程的所有教师
-    path('get_course_teachers/', GetCourseTeachers.as_view(), name='get_course_teachers'),
+    path('get_course_teachers/<int:c_id>/', GetCourseTeachers.as_view(), name='get_course_teachers'),
 ]
