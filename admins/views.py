@@ -474,7 +474,7 @@ class GetCourseTeachers(APIView):
             200: '成功返回该课程的所有教师',
         }
     )
-    def get(self, request,c_id):
+    def get(self, request, c_id):
         try:
             course = Course.objects.get(C_id=c_id)
         except Course.DoesNotExist:
