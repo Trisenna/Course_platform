@@ -22,4 +22,6 @@ urlpatterns = [
     path('get_course_students/<int:c_id>/', GetCourseStudents.as_view(), name='get_course_students'),
     # 获取某个课程的所有教师
     path('get_course_teachers/<int:c_id>/', GetCourseTeachers.as_view(), name='get_course_teachers'),
+    # 修改某个课程的课程信息
+    path('modify_course/<int:c_id>/', ModifyCourse.as_view(), name='modify_course'),
 ]

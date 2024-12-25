@@ -301,7 +301,7 @@ class CreateCourse(APIView):
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary='创建课程',
-        operation_description="教务处查询所有课程",
+        operation_description="教务处创建课程",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -315,16 +315,18 @@ class CreateCourse(APIView):
         ),
         responses={
             201: '成功创建课程',
+            400: '发出了错误请求',
         }
     )
     def post(self, request):
         name = request.data.get('name')
         introduction = request.data.get('introduction')
         period = request.data.get('period')
+        if period < 1 or period > 8:
+            return Response({'error': '课程时段应为1-8'}, status=status.HTTP_400_BAD_REQUEST)
         credit = request.data.get('credit')
         hours = request.data.get('hours')
         place = request.data.get('place')
-        print(name)
         # 创建课程
         course = Course.objects.create(name=name, introduction=introduction,
                                        period=period,credit=credit,
@@ -342,7 +344,7 @@ class AddCourseUser(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'C_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
                 'students': openapi.Schema(
                     type=openapi.TYPE_ARRAY,
                     items=openapi.Schema(
@@ -366,7 +368,7 @@ class AddCourseUser(APIView):
         }
     )
     def post(self, request):
-        c_id = request.data.get('C_id')
+        c_id = request.data.get('c_id')
         # 获取目标课程
         course = Course.objects.get(C_id=c_id)
         students = request.data.get('students', [])
@@ -397,7 +399,7 @@ class DeleteCourse(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'C_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
+                'c_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='课程id'),
             }
         ),
         responses={
@@ -407,7 +409,7 @@ class DeleteCourse(APIView):
 
     def delete(self, request):
         try:
-            course = Course.objects.get(C_id=request.data.get('C_id'))
+            course = Course.objects.get(C_id=request.data.get('c_id'))
             course.delete()
         except Course.DoesNotExist:
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
@@ -492,3 +494,67 @@ class GetCourseTeachers(APIView):
         } for teacher in all_teachers]
 
         return Response({'teachers': serialized_teachers, }, status=status.HTTP_200_OK)
+
+# 修改课程信息
+class ModifyCourse(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='修改某个课程的信息',
+        operation_description="教务处修改某个课程的信息",
+        manual_parameters=[
+            openapi.Parameter(
+                'c_id',
+                openapi.IN_PATH,
+                description='课程id',
+                required=True,
+                type=openapi.TYPE_INTEGER,
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='新课程名'),
+                'introduction': openapi.Schema(type=openapi.TYPE_STRING, description='新课程介绍'),
+                'period': openapi.Schema(type=openapi.TYPE_STRING, description='新课程时段(1-8)'),
+                'credit': openapi.Schema(type=openapi.TYPE_STRING, description='新课程学分'),
+                'hours': openapi.Schema(type=openapi.TYPE_STRING, description='新课程学时'),
+                'place': openapi.Schema(type=openapi.TYPE_STRING, description='新上课地点'),
+            }
+        ),
+        responses={
+            201: '成功修改该课程的信息',
+            400: '发出了错误请求',
+        }
+    )
+    def put(self, request, c_id):
+        try:
+            course = Course.objects.get(C_id=c_id)
+        except Course.DoesNotExist:
+            c_id = str(c_id)
+            return Response({"error": "id为" + c_id + "的课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+        # 修改c_id课程的信息
+        name = request.data.get('name')
+        introduction = request.data.get('introduction')
+        period = request.data.get('period')
+        credit = request.data.get('credit')
+        hours = request.data.get('hours')
+        place = request.data.get('place')
+        if name:
+            course.name = name
+        if introduction:
+            course.introduction = introduction
+        if period:
+            period = int(period)
+            if period < 1 or period > 8:
+                return Response({'error': '课程时段应为1-8'}, status=status.HTTP_400_BAD_REQUEST)
+            course.period = period
+        if credit:
+            course.credit = int(credit)
+        if hours:
+            course.hours = int(hours)
+        if place:
+            course.place = place
+        course.save()
+
+        return Response({'message': '成功修改该课程的信息'}, status=status.HTTP_201_CREATED)
