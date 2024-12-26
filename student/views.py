@@ -15,6 +15,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from django.db.models import Q
 import time
+from datetime import datetime
 
 
 
@@ -1066,7 +1067,7 @@ class GetCourseTeacherInfo(APIView):
         except Course.DoesNotExist:
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 
-#教师查看课件
+#学生查看课件
 class GetCourseMaterial(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -1099,18 +1100,28 @@ class GetCourseMaterial(APIView):
         try:
             course = Course.objects.get(C_id=c_id)
             # 获取课程的课件资源
-            resource = CourseResource.objects.filter(C_id=course, R_id__type='0').first()
-            if resource is None:
+            resources = CourseResource.objects.filter(C_id=course, R_id__type='0')
+            if not resources.exists():
                 return Response({"error": "课件不存在"}, status=status.HTTP_404_NOT_FOUND)
 
+            # 构造文件列表
+            file_list = []
+            for resource in resources:
+                file_info = {
+                    "r_id": resource.R_id.R_id,
+                    "resource_name": os.path.basename(resource.R_id.file.path),
+                }
+                file_list.append(file_info)
+
+            return Response({"files": file_list}, status=status.HTTP_200_OK)
             # 假设file字段保存的是文件路径
-            file_path = resource.R_id.file.path
-            response = FileResponse(open(file_path, 'rb'))
-            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
-            return response
+            # file_path = resource.R_id.file.path
+            # response = FileResponse(open(file_path, 'rb'))
+            # response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            # return response
         except Course.DoesNotExist:
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
-#教师查看试题
+#学生查看试题
 class GetTest(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -1143,18 +1154,29 @@ class GetTest(APIView):
         try:
             course = Course.objects.get(C_id=c_id)
             # 获取课程的试题资源
-            resource = CourseResource.objects.filter(C_id=course, R_id__type='1').first()
-            if resource is None:
+            resources = CourseResource.objects.filter(C_id=course, R_id__type='1')
+            if resources is None:
                 return Response({"error": "试题不存在"}, status=status.HTTP_404_NOT_FOUND)
 
+            # 构造文件列表
+            file_list = []
+            for resource in resources:
+                file_info = {
+                    "r_id": resource.R_id.R_id,
+                    "resource_name": os.path.basename(resource.R_id.file.path),
+                }
+                file_list.append(file_info)
+
+            return Response({"files": file_list}, status=status.HTTP_200_OK)
+
             # 假设file字段保存的是文件路径
-            file_path = resource.R_id.file.path
-            response = FileResponse(open(file_path, 'rb'))
-            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
-            return response
+            # file_path = resource.R_id.file.path
+            # response = FileResponse(open(file_path, 'rb'))
+            # response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            # return response
         except Course.DoesNotExist:
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
-#教师查看习题
+#学生查看习题
 class GetExercise(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -1187,15 +1209,26 @@ class GetExercise(APIView):
         try:
             course = Course.objects.get(C_id=c_id)
             # 获取课程的习题资源
-            resource = CourseResource.objects.filter(C_id=course, R_id__type='2').first()
-            if resource is None:
+            resources = CourseResource.objects.filter(C_id=course, R_id__type='2')
+            if resources is None:
                 return Response({"error": "习题不存在"}, status=status.HTTP_404_NOT_FOUND)
 
+            # 构造文件列表
+            file_list = []
+            for resource in resources:
+                file_info = {
+                    "r_id": resource.R_id.R_id,
+                    "resource_name": os.path.basename(resource.R_id.file.path),
+                }
+                file_list.append(file_info)
+
+            return Response({"files": file_list}, status=status.HTTP_200_OK)
+
             # 假设file字段保存的是文件路径
-            file_path = resource.R_id.file.path
-            response = FileResponse(open(file_path, 'rb'))
-            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
-            return response
+            # file_path = resource.R_id.file.path
+            # response = FileResponse(open(file_path, 'rb'))
+            # response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            # return response
         except Course.DoesNotExist:
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
 #学生查看自己某个课程的所有作业
@@ -1230,17 +1263,29 @@ class GetAllwork(APIView):
 
         try:
             course = Course.objects.get(C_id=c_id)
-            student=Student.objects.get(S_id=s_id)
+            student = Student.objects.get(S_id=s_id)
             # 获取课程的作业资源
-            W_id = DoWork.objects.filter(C_id=course, S_id=student).values("W_id")
-            if W_id is None:
+            do_work_list = DoWork.objects.filter(C_id=course, S_id=student).select_related('W_id')
+            if not do_work_list.exists():
                 return Response({"error": "作业不存在"}, status=status.HTTP_404_NOT_FOUND)
-            #获取作业的title
-
-            title=Work.objects.filter(W_id__in=W_id).values("title","W_id")
-            return Response({"title": title})
+            #获取作业的id和title
+            work_list = []
+            for do_work in do_work_list:
+                work = do_work.W_id
+                work_list.append({
+                    "w_id": work.W_id,
+                    "score": do_work.score,
+                    "start_date": work.start,
+                    "end_date": work.end,
+                    "title": work.title,
+                    "is_push": do_work.is_push,
+                    "content": os.path.basename(work.content.path),
+                })
+            return Response({"works": work_list}, status=status.HTTP_200_OK)
         except Course.DoesNotExist:
             return Response({"error": "课程不存在"}, status=status.HTTP_404_NOT_FOUND)
+        except Student.DoesNotExist:
+            return Response({"error": "学生不存在"}, status=status.HTTP_404_NOT_FOUND)
 #学生查看自己的某个作业
 class GetWork(APIView):
     authentication_classes = [TokenAuthentication]
@@ -1309,6 +1354,12 @@ class SubmitWork(APIView):
             student = Student.objects.get(S_id=s_id)
             work = Work.objects.get(W_id=w_id)
             w=DoWork.objects.get(S_id=student,W_id=work)
+            # 获取当前时间
+            current_time = datetime.now().date()
+            # 比较当前时间与作业的截止时间
+            if current_time > work.end:
+                return Response({"error": "已超过最晚提交时间，无法提交作业"}, status=status.HTTP_403_FORBIDDEN)
+
             w.file=file
             w.is_push=True
             w.save()
@@ -1317,6 +1368,45 @@ class SubmitWork(APIView):
         except Work.DoesNotExist:
             return Response({"error": "作业不存在"}, status=status.HTTP_404_NOT_FOUND)
 
+
+# 学生获取资源文件
+class getResource(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary='学生获取某个资源文件',
+        operation_description='允许学生通过资源id来获取文件',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'r_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='资源id'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                '返回资源',
+                examples={
+                    "application/json": {
+                        "download_link": "http://example.com/download/path/to/work.pdf"
+                    }
+                }
+            )
+        }
+    )
+    def get(self, request, s_id):
+        r_id = request.data.get('r_id')
+        if r_id is None:
+            return Response({"error": "资源id未提供"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            resource = Resource.objects.get(R_id=r_id)
+            # 假设file字段保存的是文件路径
+            file_path = resource.file.path
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+        except Resource.DoesNotExist:
+            return Response({"error": "资源不存在"}, status=status.HTTP_404_NOT_FOUND)
 
 
 

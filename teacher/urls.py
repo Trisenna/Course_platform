@@ -46,6 +46,8 @@ urlpatterns = [
     #教师批改作业
     path('<int:t_id>/correct-work/', CorrectWork.as_view(), name='correct_work'),
 
+    # 教师获取资源文件
+    path('<int:t_id>/get_resource/', getResource.as_view(), name='get_resource'),
 
     # 用户查询个人信息
     path('<int:t_id>/info/', GetTeacherInfo.as_view(), name='get_teacher_info'),
