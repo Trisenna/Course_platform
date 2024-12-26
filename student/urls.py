@@ -74,7 +74,8 @@ urlpatterns = [
 #学生提交作业
     path('<int:s_id>/upload-work/', SubmitWork.as_view(), name='upload_work'),
 
-
+    # 学生获取资源文件
+    path('<int:s_id>/get_resource/', getResource.as_view(), name='get_resource'),
     # 学生查看课程的讨论区
     path('<int:s_id>/<int:c_id>/discuss/', GetDiscuss.as_view(), name='discuss'),
     # 学生在课程的讨论区发布帖子
