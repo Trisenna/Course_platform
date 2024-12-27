@@ -23,7 +23,7 @@ from drf_yasg import openapi
 from rest_framework import routers, permissions
 from rest_framework.documentation import include_docs_urls
 
-from MyWork.views import Login, ResetPassword
+from MyWork.views import Login, ResetPassword, call_baidu_api
 
 router = routers.DefaultRouter()
 
@@ -63,6 +63,9 @@ urlpatterns = [
     path('login/', Login.as_view(), name='login'),
     # 用户重置密码
     path('resetPassword/', ResetPassword.as_view(), name='resetPassword'),
+
+    #
+    path('api/baidu/call/', call_baidu_api),
 
 
 

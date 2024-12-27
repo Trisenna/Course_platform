@@ -1,8 +1,12 @@
+import json
+
+import requests
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from django.db.models.functions import NullIf
 from drf_yasg import openapi
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -164,3 +168,21 @@ class ResetPassword(APIView):
         user.save()
 
         return Response({'message': 'Reset password successfully.'}, status=status.HTTP_201_CREATED)
+
+from MyWork.service import BaiduApiService
+
+
+@api_view(['GET'])
+def call_baidu_api(request):
+    user_input = request.query_params.get('userInput', None)
+
+    if user_input is None:
+        return Response({"error": "Missing userInput parameter"}, status=status.HTTP_400_BAD_REQUEST)
+
+    baidu_api_service = BaiduApiService()
+    try:
+        result = baidu_api_service.call_api(user_input)
+        print(result)
+        return Response(json.loads(result))  # 假设返回的是JSON格式的数据
+    except requests.exceptions.RequestException as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

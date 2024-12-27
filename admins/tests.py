@@ -11,7 +11,7 @@ class ImportTestCase(TestCase):
     def test_import_student(self):
         url = reverse('import_student')
         print(url)
-        csv_file = open(r"C:\Users\Tirsenna\Downloads\students_info_20241209_232922(2).csv", 'rb')
+        csv_file = open(r"C:\Users\Tirsenna\Downloads\stident_info_my(1).csv", 'rb')
         response = self.client.post(url, {'csv_file': csv_file})
 
 

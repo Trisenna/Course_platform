@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'student',
     'drf_yasg',
+'corsheaders',
 
     'rest_framework',
     'teacher',
@@ -64,7 +65,9 @@ REST_FRAMEWORK = {
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=60 * 60 * 2)  # <-- 设置token有效时间
 }
+CORS_ALLOW_ALL_ORIGINS = True
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -100,19 +103,19 @@ WSGI_APPLICATION = 'MyWork.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
-    # 使用mysql
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'course_platform',
-        'USER': 'root',
-        'PASSWORD': 'Lyd@4213',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
+    # 使用mysql
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME': 'course_platform',
+    #     'USER': 'root',
+    #     'PASSWORD': 'Lyd@4213',
+    #     'HOST': 'localhost',
+    #     'PORT': '3306',
+    # }
 
 }
 
